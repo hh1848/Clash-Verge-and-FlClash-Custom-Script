@@ -189,25 +189,25 @@ function main(config) {
   // ==================== 节点筛选 ====================
 
   const FilterHK =
-    "^(?=.*(?i)(港|🇭🇰|HK|Hong|HKG))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(港|🇭🇰|HK|Hong|HKG))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterSG =
-    "^(?=.*(?i)(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterJP =
-    "^(?=.*(?i)(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$";
+    "(?i)^(?=.*(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$";
 
   const FilterKR =
-    "^(?=.*(?i)(韩|🇰🇷|韓|首尔|南朝鲜|KR|KOR|Korea|South))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(韩|🇰🇷|韓|首尔|南朝鲜|KR|KOR|Korea))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterUS =
-    "^(?=.*(?i)(美|🇺🇸|US|USA|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(Plus|Australia|5x)).*$";
+    "(?i)^(?=.*(美|🇺🇸|(?<![A-Za-z])US(?![A-Za-z])|USA|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(Plus|Australia|5x)).*$";
 
   const FilterTW =
-    "^(?=.*(?i)(台|🇼🇸|🇹🇼|TW|tai|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(台|🇹🇼|TW|tai|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterEU =
-    "^(?=.*(?i)(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其它|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(奥地利|比利时|保加利亚|克罗地亚|塞浦路斯|塞尔维亚|捷克|丹麦|爱沙尼亚|芬兰|法国|德国|希腊|匈牙利|爱尔兰|意大利|拉脱维亚|立陶宛|卢森堡|马其顿|荷兰|波兰|葡萄牙|罗马尼亚|斯洛伐克|斯洛文尼亚|西班牙|瑞典|瑞士|英国|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterOT =
     "^(?!.*(DIRECT|直接连接|美|港|坡|台|新|日|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其它|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|🇭🇰|🇼🇸|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|HK|TW|SG|JP|KR|US|GB|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW))";
@@ -1120,9 +1120,6 @@ function main(config) {
       "https://github.com/666OS/rules/raw/release/mihomo/domain/Microsoft.mrs"
     ),
 
-    Facebook: domainMRS(
-      "https://github.com/666OS/rules/raw/release/mihomo/domain/Facebook.mrs"
-    ),
 
     Proxy: domainMRS(
       "https://github.com/666OS/rules/raw/release/mihomo/domain/Proxy.mrs"
@@ -1172,9 +1169,6 @@ function main(config) {
       "https://github.com/666OS/rules/raw/release/mihomo/ip/Google.mrs"
     ),
 
-    FacebookIP: ipMRS(
-      "https://github.com/666OS/rules/raw/release/mihomo/ip/Facebook.mrs"
-    ),
 
     ProxyIP: ipMRS(
       "https://github.com/666OS/rules/raw/release/mihomo/ip/Proxy.mrs"
