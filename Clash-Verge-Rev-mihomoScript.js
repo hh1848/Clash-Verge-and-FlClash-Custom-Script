@@ -32,7 +32,7 @@ function main(config, profileName) {
   config.ipv6 = true;
   config["unified-delay"] = true;
   config["tcp-concurrent"] = true;
-  config["find-process-mode"] = "always";
+  config["find-process-mode"] = "strict";
   config["keep-alive-interval"] = 15;
   config["keep-alive-idle"] = 600;
 
