@@ -1,8 +1,16 @@
 // Clash Verge Rev 全局扩展脚本
-// 作用：保留当前机场的 proxies / proxy-providers，统一替换为 MihomoProPlus 的代理组、规则与 DNS。
+// 作用：
+// 1. 保留机场原始 proxies / proxy-providers
+// 2. 统一生成 Mihomo 策略组、规则与 DNS
+// 3. 绝不修改任何机场节点原始名称
+//
 // 使用位置：订阅 -> 全局扩展脚本（Script）
 
 function main(config, profileName) {
+  // ============================================================
+  // 基础判断
+  // ============================================================
+
   // 不处理 MihomoProPlus 模板本身
   if (
     typeof profileName === "string" &&
@@ -16,6 +24,7 @@ function main(config, profileName) {
     : 0;
 
   const providers = config["proxy-providers"];
+
   const providerCount =
     providers && typeof providers === "object"
       ? Object.keys(providers).length
@@ -26,7 +35,9 @@ function main(config, profileName) {
     return config;
   }
 
-  // ==================== 基础配置 ====================
+  // ============================================================
+  // 基础配置
+  // ============================================================
 
   config.mode = "rule";
   config.ipv6 = true;
@@ -36,7 +47,7 @@ function main(config, profileName) {
   config["keep-alive-interval"] = 15;
   config["keep-alive-idle"] = 600;
 
-  // 不覆盖 Clash Verge 自己管理的端口、控制器、secret 等
+  // 保留 Clash Verge / 机场原有 TUN 配置，只覆盖必要项目
   const oldTun =
     config.tun && typeof config.tun === "object"
       ? config.tun
@@ -44,22 +55,16 @@ function main(config, profileName) {
 
   config.tun = Object.assign({}, oldTun, {
     stack: "mixed",
+
     "dns-hijack": [
       "any:53",
       "tcp://any:53"
     ],
+
     "auto-route": true,
     "auto-redirect": true,
     "auto-detect-interface": true
   });
-
-  config.experimental = Object.assign(
-    {},
-    config.experimental || {},
-    {
-      "quic-go-disable-gso": true
-    }
-  );
 
   config.profile = Object.assign(
     {},
@@ -70,7 +75,9 @@ function main(config, profileName) {
     }
   );
 
-  // ==================== 流量嗅探 ====================
+  // ============================================================
+  // 流量嗅探
+  // ============================================================
 
   config.sniffer = {
     enable: true,
@@ -81,6 +88,7 @@ function main(config, profileName) {
           80,
           "8080-8880"
         ],
+
         "override-destination": true
       },
 
@@ -105,28 +113,22 @@ function main(config, profileName) {
     ]
   };
 
-  // ==================== Hosts ====================
+  // ============================================================
+  // Hosts
+  // ============================================================
 
   config.hosts = Object.assign(
     {},
     config.hosts || {},
     {
-      "miwifi.com": "192.168.31.2",
-
-      "epdg.epc.mnc010.mcc234.pub.3gppnetwork.org": [
-        "87.194.8.8",
-        "87.194.88.8",
-        "87.194.89.8",
-        "87.194.9.8"
-      ],
-
       "services.googleapis.cn": "services.googleapis.com",
-
       "cn.bing.com": "www4.bing.com"
     }
   );
 
-  // ==================== DNS ====================
+  // ============================================================
+  // DNS
+  // ============================================================
 
   config.dns = {
     enable: true,
@@ -137,6 +139,10 @@ function main(config, profileName) {
 
     "fake-ip-range": "198.18.0.1/16",
 
+    "fake-ip-filter-mode": "blacklist",
+
+    // 这里只放真正需要避免 Fake-IP 的域名。
+    // 不再加入整个 China Rule Set，避免大量国内域名退出 Fake-IP。
     "fake-ip-filter": [
       "+.lan",
       "+.local",
@@ -147,11 +153,8 @@ function main(config, profileName) {
       "+.market.xiaomi.com",
       "+.pub.3gppnetwork.org",
       "+.push.apple.com",
-      "+.bing.com",
 
-      "rule-set:Direct",
-      "rule-set:Private",
-      "rule-set:China"
+      "+.bing.com"
     ],
 
     "use-hosts": true,
@@ -194,36 +197,207 @@ function main(config, profileName) {
     }
   };
 
-  // ==================== 节点筛选 ====================
+  // ============================================================
+  // 节点地区识别
+  //
+  // 注意：
+  // 这里只读取 proxy.name。
+  // 绝不修改 proxy.name。
+  // ============================================================
 
-  const FilterHK =
-    "(?i)^(?=.*(港|🇭🇰|HK|Hong|HKG))(?!.*(排除1|排除2|5x)).*$";
+  const regions = {
+    HK: {
+      name: "香港",
 
-  const FilterSG =
-    "(?i)^(?=.*(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(排除1|排除2|5x)).*$";
+      filter:
+        "(?i)^(?=.*(香港|🇭🇰|\\bHK\\b|Hong\\s*Kong|HKG))(?!.*(排除1|排除2|5x)).*$",
 
-  const FilterJP =
-    "(?i)^(?=.*(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$";
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Hong_Kong.png"
+    },
 
-  const FilterKR =
-    "(?i)^(?=.*(韩|🇰🇷|韓|首尔|南朝鲜|KR|KOR|Korea))(?!.*(排除1|排除2|5x|Africa)).*$";
+    SG: {
+      name: "狮城",
 
-  const FilterUS =
-    "(?i)^(?=.*(美|🇺🇸|US|USA|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(Plus|Australia|5x)).*$";
+      filter:
+        "(?i)^(?=.*(新加坡|狮城|獅城|🇸🇬|\\bSG\\b|Singapore|SIN|XSP))(?!.*(排除1|排除2|5x)).*$",
 
-  const FilterTW =
-    "(?i)^(?=.*(台|🇹🇼|TW|tai|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Singapore.png"
+    },
 
-  const FilterEU =
-    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其它|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU))(?!.*(排除1|排除2|5x)).*$";
+    JP: {
+      name: "日本",
 
-  const FilterOT =
-    "^(?!.*(DIRECT|直接连接|美|港|坡|台|新|日|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其它|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|HK|TW|SG|JP|KR|US|GB|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW))";
+      filter:
+        "(?i)^(?=.*(日本|🇯🇵|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png"
+    },
+
+    KR: {
+      name: "韩国",
+
+      filter:
+        "(?i)^(?=.*(韩国|韓國|首尔|首爾|南朝鲜|南韓|🇰🇷|\\bKR\\b|KOR|Korea))(?!.*(排除1|排除2|5x|Africa)).*$",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Korea.png"
+    },
+
+    US: {
+      name: "美国",
+
+      filter:
+        "(?i)^(?=.*(美国|美國|🇺🇸|\\bUS\\b|USA|United\\s*States|America|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(Plus|Australia|5x)).*$",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"
+    },
+
+    TW: {
+      name: "台湾",
+
+      filter:
+        "(?i)^(?=.*(台湾|台灣|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png"
+    },
+
+    EU: {
+      name: "欧洲",
+
+      filter:
+        "(?i)^(?=.*(奥|奥地利|比|比利时|保|保加利亚|克罗地亚|塞|塞尔维亚|捷|捷克|丹|丹麦|爱沙|爱沙尼亚|芬|芬兰|法|法国|德|德国|希|希腊|匈|匈牙利|爱尔|爱尔兰|意|意大利|拉|拉脱维亚|立|立陶宛|卢|卢森堡|马其他|荷|荷兰|波|波兰|葡|葡萄牙|罗|罗马尼亚|斯洛伐|斯洛伐克|斯洛文|斯洛文尼亚|西|西班牙|瑞|瑞典|英|英国|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW))(?!.*(排除1|排除2|5x)).*$",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/European_Union.png"
+    },
+
+    MO: {
+      name: "澳门",
+
+      filter:
+        "(?i)^(?=.*(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG))(?!.*(排除1|排除2|5x)).*$",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Macao.png"
+    }
+  };
+
+  // ============================================================
+  // 通用节点过滤
+  //
+  // 只用于过滤节点，不修改节点名称。
+  // ============================================================
 
   const FilterAL =
-    "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
+    "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
 
-  // ==================== 策略组公共列表 ====================
+  const FilterOT =
+    "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|访问|支持|教程|关注|更新|作者|加入|美|港|坡|台|新|日|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其他|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|MFM|MOG|Taipa|Coloane|Cotai))";
+
+  // ============================================================
+  // Icon
+  // ============================================================
+
+  const ICON = {
+    static:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Static.png",
+
+    clubhouse:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Clubhouse.png",
+
+    ulb:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/ULB.png",
+
+    global:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Global.png",
+
+    china:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/China.png",
+
+    final:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Final.png",
+
+    direct:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Direct.png",
+
+    speedtest:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Speedtest.png",
+
+    location:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Null_Nation.png",
+
+    emby:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Emby.png",
+
+    youtube:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/YouTube.png",
+
+    netflix:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Netflix.png",
+
+    media:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/DomesticMedia.png",
+
+    news:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Apple_News.png",
+
+    telegram:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Telegram_X.png",
+
+    twitter:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/X.png",
+
+    social:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/PBS.png",
+
+    ai:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Bot.png",
+
+    googleAI:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/AI.png",
+
+    crypto:
+      "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/Bitcloud.png",
+
+    game:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Game.png",
+
+    github:
+      "https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/04ProxySoft/github(1).png",
+
+    microsoft:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Microsoft.png",
+
+    google:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Google_Search.png",
+
+    apple:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Apple.png",
+
+    hash:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png",
+
+    roundRobin:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png",
+
+    auto:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Auto.png",
+
+    europe:
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Europe_Map.png",
+
+    ukwifi:
+      "https://www.giffgaff.design/iconography/icons/library/coverage-signal.svg"
+  };
+
+  // ============================================================
+  // 策略组公共列表
+  // ============================================================
 
   const selectFB = [
     "故障转移",
@@ -233,7 +407,8 @@ function main(config, profileName) {
     "韩国策略",
     "美国策略",
     "台湾策略",
-    "欧盟策略",
+    "澳门策略",
+    "欧洲策略",
     "冷门自选",
     "全球手动",
     "直接连接"
@@ -248,7 +423,8 @@ function main(config, profileName) {
     "韩国策略",
     "美国策略",
     "台湾策略",
-    "欧盟策略",
+    "澳门策略",
+    "欧洲策略",
     "冷门自选",
     "全球手动",
     "直接连接"
@@ -264,7 +440,8 @@ function main(config, profileName) {
     "韩国策略",
     "美国策略",
     "台湾策略",
-    "欧盟策略",
+    "澳门策略",
+    "欧洲策略",
     "冷门自选",
     "全球手动"
   ];
@@ -278,7 +455,8 @@ function main(config, profileName) {
     "日本策略",
     "韩国策略",
     "台湾策略",
-    "欧盟策略",
+    "澳门策略",
+    "欧洲策略",
     "冷门自选",
     "全球手动",
     "直接连接"
@@ -293,19 +471,18 @@ function main(config, profileName) {
     "韩国策略",
     "美国策略",
     "台湾策略",
-    "欧盟策略",
+    "澳门策略",
+    "欧洲策略",
     "冷门自选",
     "全球手动",
     "直接连接"
   ];
 
-  // ==================== 工具函数 ====================
+  // ============================================================
+  // 工具函数
+  // ============================================================
 
-  function selectGroup(
-    name,
-    proxiesList,
-    icon
-  ) {
+  function selectGroup(name, proxiesList, icon) {
     return {
       name: name,
       type: "select",
@@ -316,14 +493,14 @@ function main(config, profileName) {
 
   function regionSelect(
     name,
-    filter,
+    region,
     autoName,
     hashName,
-    rrName,
-    icon
+    rrName
   ) {
     return {
       name: name,
+
       type: "select",
 
       proxies: [
@@ -332,26 +509,27 @@ function main(config, profileName) {
         rrName
       ],
 
+      // 同时包含：
+      // 1. config.proxies
+      // 2. proxy-providers
       "include-all": true,
 
-      filter: filter,
+      filter: region.filter,
 
       "empty-fallback": "COMPATIBLE",
 
-      icon: icon
+      icon: region.icon
     };
   }
 
-  function urlTest(
-    name,
-    filter
-  ) {
+  function urlTest(name, filter) {
     return {
       name: name,
 
       type: "url-test",
 
-      interval: 200,
+      // 5 分钟测速一次
+      interval: 300,
 
       lazy: true,
 
@@ -366,23 +544,22 @@ function main(config, profileName) {
 
       "empty-fallback": "COMPATIBLE",
 
-      icon:
-        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Auto.png"
+      icon: ICON.auto
     };
   }
 
   function loadBalance(
     name,
     filter,
-    strategy,
-    icon
+    strategy
   ) {
     return {
       name: name,
 
       type: "load-balance",
 
-      interval: 200,
+      // 5 分钟更新一次
+      interval: 300,
 
       lazy: true,
 
@@ -399,12 +576,26 @@ function main(config, profileName) {
 
       "empty-fallback": "COMPATIBLE",
 
-      icon: icon
+      icon:
+        strategy === "consistent-hashing"
+          ? ICON.hash
+          : ICON.roundRobin
     };
   }
 
-  // ==================== 全球手动节点排序 ====================
-  // 仅影响“全球手动”代理组，不修改其他代理组和机场原始节点顺序。
+  // ============================================================
+  // 全球手动节点排序
+  //
+  // 重要：
+  // 这里只改变“全球手动”策略组中的显示顺序。
+  // 不修改任何 proxy 对象。
+  // 不修改任何节点 name。
+  //
+  // 注意：
+  // proxy-providers 的远程节点由 Mihomo 动态管理，
+  // JS 无法直接读取 provider 下载后的节点列表，
+  // 因此 provider 节点保持 provider 自身顺序。
+  // ============================================================
 
   function getGlobalManualProxies() {
     if (!Array.isArray(config.proxies)) {
@@ -412,7 +603,7 @@ function main(config, profileName) {
     }
 
     const excludeRegex =
-      /(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author)/i;
+      /(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author)/i;
 
     function getPriority(name) {
       // 香港
@@ -420,6 +611,13 @@ function main(config, profileName) {
         /(香港|🇭🇰|\bHK\b|Hong\s*Kong|HKG)/i.test(name)
       ) {
         return 10;
+      }
+
+      // 澳门
+      if (
+        /(澳门|澳門|濠江|🇲🇴|\bMO\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG)/i.test(name)
+      ) {
+        return 15;
       }
 
       // 台湾
@@ -452,7 +650,7 @@ function main(config, profileName) {
 
       // 美国
       if (
-        /(美国|美國|🇺🇸|\bUS\b|USA|United\s*States|LAX|SFO|JFK|SJC|SEA|IAD|ORD|ATL|DFW|MIA)/i.test(name)
+        /(美国|美國|🇺🇸|\bUS\b|USA|United\s*States|America|LAX|SFO|JFK|SJC|SEA|IAD|ORD|ATL|DFW|MIA)/i.test(name)
       ) {
         return 60;
       }
@@ -466,14 +664,14 @@ function main(config, profileName) {
 
       // 德国
       if (
-        /(德国|德國|🇩🇪|\bDE\b|Germany|Frankfurt|FRA|MUC)/i.test(name)
+        /(德国|德國|\bDE\b|Germany|Frankfurt|FRA|MUC)/i.test(name)
       ) {
         return 80;
       }
 
       // 法国
       if (
-        /(法国|法國|🇫🇷|\bFR\b|France|Paris|CDG)/i.test(name)
+        /(法国|法國|\bFR\b|France|Paris|CDG)/i.test(name)
       ) {
         return 90;
       }
@@ -483,70 +681,85 @@ function main(config, profileName) {
     }
 
     return config.proxies
-      .map((proxy, index) => ({
-        name: proxy && proxy.name,
-        index: index
-      }))
-      .filter(
-        item =>
+      .map(function (proxy, index) {
+        return {
+          name: proxy && proxy.name,
+          index: index
+        };
+      })
+
+      // 只过滤，不修改名称
+      .filter(function (item) {
+        return (
           item.name &&
           !excludeRegex.test(item.name)
-      )
-      .sort((a, b) => {
+        );
+      })
+
+      .sort(function (a, b) {
         const priorityDiff =
           getPriority(a.name) -
           getPriority(b.name);
 
-        // 不同地区按优先级排列
         if (priorityDiff !== 0) {
           return priorityDiff;
         }
 
-        // 同一地区保持机场原始顺序
+        // 同地区保持机场原始顺序
         return a.index - b.index;
       })
-      .map(item => item.name);
+
+      .map(function (item) {
+        return item.name;
+      });
   }
 
   const globalManualProxies =
     getGlobalManualProxies();
 
+  // Provider 名称保持原样
   const globalManualProviders =
     config["proxy-providers"] &&
     typeof config["proxy-providers"] === "object"
       ? Object.keys(config["proxy-providers"])
       : [];
 
-  // ==================== 代理组 ====================
+  // ============================================================
+  // 代理组
+  // ============================================================
 
-  config["proxy-groups"] = [
-    // ---------- 全球手动置顶 ----------
+  const proxyGroups = [
+    // ==========================================================
+    // 全球手动
+    // ==========================================================
 
     {
       name: "全球手动",
 
       type: "select",
 
-      // 仅这里改为按地区优先级排列
+      // 这里只是策略组中的排列顺序。
+      // 不会修改节点自身名称。
       proxies: globalManualProxies,
 
-      // 兼容使用 proxy-providers 的机场
+      // Provider 原名称保持不变
       use: globalManualProviders,
 
       filter: FilterAL,
 
       "empty-fallback": "COMPATIBLE",
 
-      icon:
-        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Clubhouse.png"
+      icon: ICON.clubhouse
     },
 
-    // ---------- 主要策略组 ----------
+    // ==========================================================
+    // 主要策略组
+    // ==========================================================
 
     selectGroup(
       "默认代理",
       selectFB,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Static.png"
+      ICON.static
     ),
 
     {
@@ -554,7 +767,7 @@ function main(config, profileName) {
 
       type: "fallback",
 
-      interval: 200,
+      interval: 300,
 
       lazy: true,
 
@@ -568,32 +781,32 @@ function main(config, profileName) {
         "韩国策略",
         "美国策略",
         "台湾策略",
-        "欧盟策略",
+        "澳门策略",
+        "欧洲策略",
         "全球手动",
         "冷门自选",
         "直接连接"
       ],
 
-      icon:
-        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/ULB.png"
+      icon: ICON.ulb
     },
 
     selectGroup(
       "国外流量",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Global.png"
+      ICON.global
     ),
 
     selectGroup(
       "国内流量",
       selectDC,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/China.png"
+      ICON.china
     ),
 
     selectGroup(
       "兜底流量",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Final.png"
+      ICON.final
     ),
 
     {
@@ -607,11 +820,12 @@ function main(config, profileName) {
 
       hidden: true,
 
-      icon:
-        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Direct.png"
+      icon: ICON.direct
     },
 
-    // ---------- 功能策略组 ----------
+    // ==========================================================
+    // 功能策略组
+    // ==========================================================
 
     {
       name: "网络测试",
@@ -626,8 +840,7 @@ function main(config, profileName) {
 
       "empty-fallback": "COMPATIBLE",
 
-      icon:
-        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Speedtest.png"
+      icon: ICON.speedtest
     },
 
     {
@@ -637,11 +850,10 @@ function main(config, profileName) {
 
       proxies: [
         "DIRECT",
-        "欧盟策略"
+        "欧洲策略"
       ],
 
-      icon:
-        "https://www.giffgaff.design/iconography/icons/library/coverage-signal.svg"
+      icon: ICON.ukwifi
     },
 
     {
@@ -657,175 +869,191 @@ function main(config, profileName) {
         "日本策略",
         "韩国策略",
         "美国策略",
-        "欧盟策略"
+        "欧洲策略"
       ],
 
-      icon:
-        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Null_Nation.png"
+      icon: ICON.location
     },
 
-    // ---------- 媒体 ----------
+    // ==========================================================
+    // 媒体
+    // ==========================================================
 
     selectGroup(
       "Emby服",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Emby.png"
+      ICON.emby
     ),
 
     selectGroup(
       "油管视频",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/YouTube.png"
+      ICON.youtube
     ),
 
     selectGroup(
       "奈飞视频",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Netflix.png"
+      ICON.netflix
     ),
 
     selectGroup(
       "国际媒体",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/DomesticMedia.png"
+      ICON.media
     ),
 
     selectGroup(
       "新闻媒体",
       selectUS,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Apple_News.png"
+      ICON.news
     ),
 
-    // ---------- 社交 ----------
+    // ==========================================================
+    // 社交
+    // ==========================================================
 
     selectGroup(
       "电报消息",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Telegram_X.png"
+      ICON.telegram
     ),
 
     selectGroup(
       "推特社交",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/X.png"
+      ICON.twitter
     ),
 
     selectGroup(
       "社交平台",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/PBS.png"
+      ICON.social
     ),
 
-    // ---------- 服务 ----------
+    // ==========================================================
+    // 服务
+    // ==========================================================
 
     selectGroup(
       "人工智能",
       selectUS,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/AI.png"
+      ICON.ai
+    ),
+
+    selectGroup(
+      "谷歌AI",
+      selectUS,
+      ICON.googleAI
     ),
 
     selectGroup(
       "货币平台",
       selectSG,
-      "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/Bitcloud.png"
+      ICON.crypto
     ),
 
     selectGroup(
       "游戏平台",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Game.png"
+      ICON.game
     ),
 
     selectGroup(
       "Github",
       selectPY,
-      "https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/04ProxySoft/github(1).png"
+      ICON.github
     ),
 
     selectGroup(
       "微软服务",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Microsoft.png"
+      ICON.microsoft
     ),
 
     selectGroup(
       "谷歌服务",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Google_Search.png"
+      ICON.google
     ),
 
     selectGroup(
       "苹果服务",
       selectPY,
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Apple.png"
+      ICON.apple
     ),
 
-    // ---------- 地区 ----------
+    // ==========================================================
+    // 地区策略
+    // ==========================================================
 
     regionSelect(
       "香港策略",
-      FilterHK,
+      regions.HK,
       "香港自动",
       "香港均衡-散列",
-      "香港均衡-轮询",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Hong_Kong.png"
+      "香港均衡-轮询"
     ),
 
     regionSelect(
       "台湾策略",
-      FilterTW,
+      regions.TW,
       "台湾自动",
       "台湾均衡-散列",
-      "台湾均衡-轮询",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png"
+      "台湾均衡-轮询"
     ),
 
     regionSelect(
       "狮城策略",
-      FilterSG,
+      regions.SG,
       "狮城自动",
       "狮城均衡-散列",
-      "狮城均衡-轮询",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Singapore.png"
+      "狮城均衡-轮询"
     ),
 
     regionSelect(
       "日本策略",
-      FilterJP,
+      regions.JP,
       "日本自动",
       "日本均衡-散列",
-      "日本均衡-轮询",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png"
+      "日本均衡-轮询"
     ),
 
     regionSelect(
       "韩国策略",
-      FilterKR,
+      regions.KR,
       "韩国自动",
       "韩国均衡-散列",
-      "韩国均衡-轮询",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Korea.png"
+      "韩国均衡-轮询"
     ),
 
     regionSelect(
       "美国策略",
-      FilterUS,
+      regions.US,
       "美国自动",
       "美国均衡-散列",
-      "美国均衡-轮询",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"
+      "美国均衡-轮询"
     ),
 
     regionSelect(
-      "欧盟策略",
-      FilterEU,
-      "欧盟自动",
-      "欧盟均衡-散列",
-      "欧盟均衡-轮询",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/European_Union.png"
+      "欧洲策略",
+      regions.EU,
+      "欧洲自动",
+      "欧洲均衡-散列",
+      "欧洲均衡-轮询"
     ),
 
-    // ---------- 其他 ----------
+    regionSelect(
+      "澳门策略",
+      regions.MO,
+      "澳门自动",
+      "澳门均衡-散列",
+      "澳门均衡-轮询"
+    ),
+
+    // ==========================================================
+    // 其他节点
+    // ==========================================================
 
     {
       name: "冷门自选",
@@ -838,162 +1066,177 @@ function main(config, profileName) {
 
       "empty-fallback": "COMPATIBLE",
 
-      icon:
-        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Europe_Map.png"
+      icon: ICON.europe
     },
 
-    // ---------- 自动测速 ----------
+    // ==========================================================
+    // 自动测速
+    // ==========================================================
 
     urlTest(
       "香港自动",
-      FilterHK
+      regions.HK.filter
     ),
 
     urlTest(
       "台湾自动",
-      FilterTW
+      regions.TW.filter
     ),
 
     urlTest(
       "狮城自动",
-      FilterSG
+      regions.SG.filter
     ),
 
     urlTest(
       "日本自动",
-      FilterJP
+      regions.JP.filter
     ),
 
     urlTest(
       "韩国自动",
-      FilterKR
+      regions.KR.filter
     ),
 
     urlTest(
       "美国自动",
-      FilterUS
+      regions.US.filter
     ),
 
     urlTest(
-      "欧盟自动",
-      FilterEU
+      "欧洲自动",
+      regions.EU.filter
     ),
 
-    // ---------- 散列负载均衡 ----------
+    urlTest(
+      "澳门自动",
+      regions.MO.filter
+    ),
+
+    // ==========================================================
+    // 散列负载均衡
+    // ==========================================================
 
     loadBalance(
       "香港均衡-散列",
-      FilterHK,
-      "consistent-hashing",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+      regions.HK.filter,
+      "consistent-hashing"
     ),
 
     loadBalance(
       "台湾均衡-散列",
-      FilterTW,
-      "consistent-hashing",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+      regions.TW.filter,
+      "consistent-hashing"
     ),
 
     loadBalance(
       "狮城均衡-散列",
-      FilterSG,
-      "consistent-hashing",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+      regions.SG.filter,
+      "consistent-hashing"
     ),
 
     loadBalance(
       "日本均衡-散列",
-      FilterJP,
-      "consistent-hashing",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+      regions.JP.filter,
+      "consistent-hashing"
     ),
 
     loadBalance(
       "韩国均衡-散列",
-      FilterKR,
-      "consistent-hashing",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+      regions.KR.filter,
+      "consistent-hashing"
     ),
 
     loadBalance(
       "美国均衡-散列",
-      FilterUS,
-      "consistent-hashing",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+      regions.US.filter,
+      "consistent-hashing"
     ),
 
     loadBalance(
-      "欧盟均衡-散列",
-      FilterEU,
-      "consistent-hashing",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+      "欧洲均衡-散列",
+      regions.EU.filter,
+      "consistent-hashing"
     ),
 
-    // ---------- 轮询负载均衡 ----------
+    loadBalance(
+      "澳门均衡-散列",
+      regions.MO.filter,
+      "consistent-hashing"
+    ),
+
+    // ==========================================================
+    // 轮询负载均衡
+    // ==========================================================
 
     loadBalance(
       "香港均衡-轮询",
-      FilterHK,
-      "round-robin",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+      regions.HK.filter,
+      "round-robin"
     ),
 
     loadBalance(
       "台湾均衡-轮询",
-      FilterTW,
-      "round-robin",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+      regions.TW.filter,
+      "round-robin"
     ),
 
     loadBalance(
       "狮城均衡-轮询",
-      FilterSG,
-      "round-robin",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+      regions.SG.filter,
+      "round-robin"
     ),
 
     loadBalance(
       "日本均衡-轮询",
-      FilterJP,
-      "round-robin",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+      regions.JP.filter,
+      "round-robin"
     ),
 
     loadBalance(
       "韩国均衡-轮询",
-      FilterKR,
-      "round-robin",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+      regions.KR.filter,
+      "round-robin"
     ),
 
     loadBalance(
       "美国均衡-轮询",
-      FilterUS,
-      "round-robin",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+      regions.US.filter,
+      "round-robin"
     ),
 
     loadBalance(
-      "欧盟均衡-轮询",
-      FilterEU,
-      "round-robin",
-      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+      "欧洲均衡-轮询",
+      regions.EU.filter,
+      "round-robin"
+    ),
+
+    loadBalance(
+      "澳门均衡-轮询",
+      regions.MO.filter,
+      "round-robin"
     )
   ];
 
-  // ==================== 分流规则 ====================
+  config["proxy-groups"] = proxyGroups;
+
+  // ============================================================
+  // 分流规则
+  // ============================================================
 
   config.rules = [
+    // ----------------------------------------------------------
     // 广告与跟踪
+    // ----------------------------------------------------------
+
     "RULE-SET,Tracking,REJECT",
     "RULE-SET,AWAvenueAds,REJECT",
     "RULE-SET,Advertising,REJECT",
 
-    // 阻止 QUIC
-    "AND,((DST-PORT,443),(NETWORK,UDP)),REJECT",
+    // ----------------------------------------------------------
+    // 国内 / 特殊直连
+    // ----------------------------------------------------------
 
-    // 域名规则
     "RULE-SET,ukwifi,UKwifi",
 
     "RULE-SET,LocationDKS,抖快书定位",
@@ -1008,11 +1251,53 @@ function main(config, profileName) {
 
     "RULE-SET,AppleCN,直接连接",
 
+    // ----------------------------------------------------------
+    // Google Gemini / AI
+    // ----------------------------------------------------------
+
+    // NotebookLM
+    "DOMAIN-SUFFIX,notebooklm.google,谷歌AI",
+    "DOMAIN-SUFFIX,notebooklm.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,notebook.google.com,谷歌AI",
+
+    // Gemini
+    "DOMAIN-SUFFIX,gemini.google.com,谷歌AI",
+
+    // Bard 历史域名
+    "DOMAIN-SUFFIX,bard.google.com,谷歌AI",
+
+    // Google AI Studio / MakerSuite
+    "DOMAIN-SUFFIX,aistudio.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,makersuite.google.com,谷歌AI",
+
+    // Gemini API
+    "DOMAIN-SUFFIX,generativelanguage.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,ai.google.dev,谷歌AI",
+
+    // Google Labs
+    "DOMAIN-SUFFIX,labs.google,谷歌AI",
+    "DOMAIN-SUFFIX,labs.google.com,谷歌AI",
+
+    // Google DeepMind
+    "DOMAIN-SUFFIX,deepmind.google,谷歌AI",
+    "DOMAIN-SUFFIX,deepmind.google.com,谷歌AI",
+
+    // Google AI 品牌域
+    "DOMAIN-SUFFIX,google.ai,谷歌AI",
+
+    // 其他 AI
     "RULE-SET,AI,人工智能",
 
-    "DOMAIN-KEYWORD,speedtest,网络测试",
+    // ----------------------------------------------------------
+    // 测速
+    // ----------------------------------------------------------
 
+    "DOMAIN-KEYWORD,speedtest,网络测试",
     "RULE-SET,Speedtest,网络测试",
+
+    // ----------------------------------------------------------
+    // 社交
+    // ----------------------------------------------------------
 
     "RULE-SET,Twitter,推特社交",
 
@@ -1022,11 +1307,23 @@ function main(config, profileName) {
 
     "RULE-SET,NewsMedia,新闻媒体",
 
+    // ----------------------------------------------------------
+    // 特殊直连
+    // ----------------------------------------------------------
+
     "DOMAIN-SUFFIX,steamserver.net,直接连接",
+
+    // ----------------------------------------------------------
+    // 游戏 / 加密货币
+    // ----------------------------------------------------------
 
     "RULE-SET,Games,游戏平台",
 
     "RULE-SET,Crypto,货币平台",
+
+    // ----------------------------------------------------------
+    // 媒体
+    // ----------------------------------------------------------
 
     "RULE-SET,Emby,Emby服",
 
@@ -1036,6 +1333,10 @@ function main(config, profileName) {
 
     "RULE-SET,Streaming,国际媒体",
 
+    // ----------------------------------------------------------
+    // Google / Apple / GitHub / Microsoft
+    // ----------------------------------------------------------
+
     "RULE-SET,Apple,苹果服务",
 
     "RULE-SET,Google,谷歌服务",
@@ -1044,11 +1345,10 @@ function main(config, profileName) {
 
     "RULE-SET,Microsoft,微软服务",
 
-    "RULE-SET,Proxy,国外流量",
-
-    "RULE-SET,China,国内流量",
-
+    // ----------------------------------------------------------
     // IP 规则
+    // ----------------------------------------------------------
+
     "RULE-SET,AdvertisingIP,REJECT,no-resolve",
 
     "RULE-SET,PrivateIP,直接连接,no-resolve",
@@ -1071,13 +1371,18 @@ function main(config, profileName) {
 
     "RULE-SET,ProxyIP,国外流量,no-resolve",
 
-    "RULE-SET,ChinaIP,国内流量",
+    "RULE-SET,ChinaIP,国内流量,no-resolve",
 
-    // 兜底
+    // ----------------------------------------------------------
+    // 最终兜底
+    // ----------------------------------------------------------
+
     "MATCH,兜底流量"
   ];
 
-  // ==================== Rule Providers ====================
+  // ============================================================
+  // Rule Providers
+  // ============================================================
 
   function domainMRS(url) {
     return {
@@ -1110,7 +1415,9 @@ function main(config, profileName) {
   }
 
   config["rule-providers"] = {
-    // ---------- 域名 ----------
+    // ==========================================================
+    // Domain
+    // ==========================================================
 
     Tracking: domainMRS(
       "https://github.com/666OS/rules/raw/release/mihomo/domain/Tracking.mrs"
@@ -1212,7 +1519,9 @@ function main(config, profileName) {
       "https://github.com/666OS/rules/raw/release/mihomo/domain/China.mrs"
     ),
 
-    // ---------- IP ----------
+    // ==========================================================
+    // IP
+    // ==========================================================
 
     AdvertisingIP: ipMRS(
       "https://github.com/666OS/rules/raw/release/mihomo/ip/Advertising.mrs"
@@ -1262,7 +1571,9 @@ function main(config, profileName) {
       "https://github.com/666OS/rules/raw/release/mihomo/ip/China.mrs"
     ),
 
-    // ---------- WiFi Calling ----------
+    // ==========================================================
+    // WiFi Calling
+    // ==========================================================
 
     ukwifi: {
       type: "http",
@@ -1277,13 +1588,17 @@ function main(config, profileName) {
         "https://raw.githubusercontent.com/HenryChiao/wificalling/refs/heads/main/qiao/wificalling.list"
     },
 
-    // ---------- 广告 ----------
+    // ==========================================================
+    // 广告
+    // ==========================================================
 
     AWAvenueAds: domainYAML(
       "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.yaml"
     ),
 
-    // ---------- GitHub ----------
+    // ==========================================================
+    // GitHub
+    // ==========================================================
 
     github: {
       type: "http",
@@ -1300,6 +1615,10 @@ function main(config, profileName) {
         "https://rule.kelee.one/Clash/GitHub.yaml"
     }
   };
+
+  // ============================================================
+  // 返回配置
+  // ============================================================
 
   return config;
 }
