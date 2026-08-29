@@ -197,22 +197,22 @@ function main(config, profileName) {
   // ==================== 节点筛选 ====================
 
   const FilterHK =
-    "(?i)^(?=.*(港|🇭🇰|HK|Hong|HKG))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(港|🇭🇰|\\bHK\\b|Hong|HKG))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterSG =
-    "(?i)^(?=.*(坡|🇸🇬|SG|Sing|SIN|XSP))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(坡|🇸🇬|\\bSG\\b|Sing|SIN|XSP))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterJP =
-    "(?i)^(?=.*(日|🇯🇵|JP|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$";
+    "(?i)^(?=.*(日|🇯🇵|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$";
 
   const FilterKR =
-    "(?i)^(?=.*(韩|🇰🇷|韓|首尔|南朝鲜|KR|KOR|Korea))(?!.*(排除1|排除2|5x|Africa)).*$";
+    "(?i)^(?=.*(韩|🇰🇷|韓|首尔|南朝鲜|\\bKR\\b|\\bKOR\\b|Korea))(?!.*(排除1|排除2|5x|Africa)).*$";
 
   const FilterUS =
-    "(?i)^(?=.*(美|🇺🇸|US|USA|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(Plus|Australia|5x)).*$";
+    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(Plus|Australia|5x)).*$";
 
   const FilterTW =
-    "(?i)^(?=.*(台|🇹🇼|TW|tai|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(台|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterEU =
     "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其他|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU))(?!.*(排除1|排除2|5x)).*$";
@@ -221,7 +221,7 @@ function main(config, profileName) {
     "(?i)^(?=.*(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterOT =
-    "^(?!.*(DIRECT|直接连接|美|港|坡|台|新|日|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其他|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|MFM|MOG|Taipa|Coloane|Cotai))";
+    "^(?!.*(DIRECT|直接连接|美|港|坡|台|新|日|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其他|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|MFM|MOG|Taipa|Coloane|Cotai))";
 
   const FilterAL =
     "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
@@ -359,7 +359,7 @@ function main(config, profileName) {
 
       type: "url-test",
 
-      interval: 200,
+      interval: 300,
 
       lazy: true,
 
@@ -390,7 +390,7 @@ function main(config, profileName) {
 
       type: "load-balance",
 
-      interval: 200,
+      interval: 300,
 
       lazy: true,
 
@@ -425,70 +425,70 @@ function main(config, profileName) {
     function getPriority(name) {
       // 香港
       if (
-        /(香港|🇭🇰|\bHK\b|Hong\s*Kong|HKG)/i.test(name)
+        /(香港|🇭🇰|\\bHK\\b|Hong\\s*Kong|HKG)/i.test(name)
       ) {
         return 10;
       }
 
       // 澳门
       if (
-        /(澳门|澳門|濠江|🇲🇴|\bMO\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG)/i.test(name)
+        /(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG)/i.test(name)
       ) {
         return 15;
       }
 
       // 台湾
       if (
-        /(台湾|台灣|🇹🇼|\bTW\b|Taiwan|TPE|TSA|KHH)/i.test(name)
+        /(台湾|台灣|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH)/i.test(name)
       ) {
         return 20;
       }
 
       // 新加坡
       if (
-        /(新加坡|狮城|獅城|🇸🇬|\bSG\b|Singapore|SIN|XSP)/i.test(name)
+        /(新加坡|狮城|獅城|🇸🇬|\\bSG\\b|Singapore|SIN|XSP)/i.test(name)
       ) {
         return 30;
       }
 
       // 日本
       if (
-        /(日本|🇯🇵|\bJP\b|Japan|NRT|HND|KIX|CTS|FUK)/i.test(name)
+        /(日本|🇯🇵|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK)/i.test(name)
       ) {
         return 40;
       }
 
       // 韩国
       if (
-        /(韩国|韓國|首尔|首爾|🇰🇷|\bKR\b|Korea|KOR)/i.test(name)
+        /(韩国|韓國|首尔|首爾|🇰🇷|\\bKR\\b|\\bKOR\\b|Korea)/i.test(name)
       ) {
         return 50;
       }
 
       // 美国
       if (
-        /(美国|美國|🇺🇸|\bUS\b|USA|United\s*States|LAX|SFO|JFK|SJC|SEA|IAD|ORD|ATL|DFW|MIA)/i.test(name)
+        /(美国|美國|🇺🇸|\\bUS\\b|\\bUSA\\b|United\\s*States|LAX|SFO|JFK|SJC|SEA|IAD|ORD|ATL|DFW|MIA)/i.test(name)
       ) {
         return 60;
       }
 
       // 英国
       if (
-        /(英国|英國|🇬🇧|\bUK\b|\bGB\b|United\s*Kingdom|London|LHR|LGW)/i.test(name)
+        /(英国|英國|🇬🇧|\\bUK\\b|\\bGB\\b|United\\s*Kingdom|London|LHR|LGW)/i.test(name)
       ) {
         return 70;
       }
 
       // 德国
       if (
-        /(德国|德國|🇩🇪|\bDE\b|Germany|Frankfurt|FRA|MUC)/i.test(name)
+        /(德国|德國|🇩🇪|\\bDE\\b|Germany|Frankfurt|FRA|MUC)/i.test(name)
       ) {
         return 80;
       }
 
       // 法国
       if (
-        /(法国|法國|🇫🇷|\bFR\b|France|Paris|CDG)/i.test(name)
+        /(法国|法國|🇫🇷|\\bFR\\b|France|Paris|CDG)/i.test(name)
       ) {
         return 90;
       }
@@ -561,7 +561,7 @@ function main(config, profileName) {
 
       type: "fallback",
 
-      interval: 200,
+      interval: 300,
 
       lazy: true,
 
@@ -726,7 +726,7 @@ function main(config, profileName) {
 
     selectGroup(
       "谷歌AI",
-      selectUS.slice(),
+      selectUS,
       "https://github.com/Koolson/Qure/raw/master/IconSet/Color/AI.png"
     ),
 
@@ -1038,22 +1038,22 @@ function main(config, profileName) {
     // Gemini Notebook 当前正式入口
     "DOMAIN-SUFFIX,notebook.google.com,谷歌AI",
 
-    // NotebookLM 旧入口
+    // NotebookLM
     "DOMAIN-SUFFIX,notebooklm.google.com,谷歌AI",
     "DOMAIN-SUFFIX,notebooklm.google,谷歌AI",
 
     // NotebookLM / Gemini Notebook 企业版
     "DOMAIN-SUFFIX,notebooklm.cloud.google.com,谷歌AI",
 
-    // Google AI 相关站点
+    // Google AI Studio / Bard / MakerSuite / DeepMind / Labs
     "DOMAIN-SUFFIX,aistudio.google.com,谷歌AI",
     "DOMAIN-SUFFIX,bard.google.com,谷歌AI",
     "DOMAIN-SUFFIX,deepmind.google.com,谷歌AI",
     "DOMAIN-SUFFIX,makersuite.google.com,谷歌AI",
     "DOMAIN-SUFFIX,labs.google.com,谷歌AI",
 
-    // Google AI 关键词
-    "DOMAIN-KEYWORD,google.ai,谷歌AI",
+    // Gemini API
+    "DOMAIN-SUFFIX,generativelanguage.googleapis.com,谷歌AI",
 
     // 其他 AI
     "RULE-SET,AI,人工智能",
@@ -1116,7 +1116,6 @@ function main(config, profileName) {
     "RULE-SET,XPTVIP,直接连接,no-resolve",
 
     // AI IP
-    // 作为域名识别失败时的 AI 兜底
     "RULE-SET,AIIP,人工智能,no-resolve",
 
     "RULE-SET,TelegramIP,电报消息,no-resolve",
