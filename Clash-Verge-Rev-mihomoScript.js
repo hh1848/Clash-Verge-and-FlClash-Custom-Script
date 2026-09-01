@@ -203,7 +203,7 @@ function main(config, profileName) {
     "(?i)^(?=.*(坡|🇸🇬|\\bSG\\b|Sing|SIN|XSP))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterJP =
-    "(?i)^(?=.*(日|🇯🇵|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$";
+    "(?i)^(?=.*(日|🇯🇵|樱花|🌸|东京|大阪|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$";
 
   const FilterKR =
     "(?i)^(?=.*(韩|🇰🇷|韓|首尔|南朝鲜|\\bKR\\b|\\bKOR\\b|Korea))(?!.*(排除1|排除2|5x|Africa)).*$";
@@ -215,16 +215,16 @@ function main(config, profileName) {
     "(?i)^(?=.*(台|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterEU =
-    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其他|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterMO =
     "(?i)^(?=.*(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterOT =
-    "^(?!.*(DIRECT|直接连接|美|港|坡|台|新|日|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马其他|荷|波|葡|罗|斯洛伐|斯洛文|西|瑞|英|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|MFM|MOG|Taipa|Coloane|Cotai))";
+    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|MFM|MOG|Taipa|Coloane|Cotai))";
 
   const FilterAL =
-    "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
+    "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|超时|重启|维护|暂停|失效|公告|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
 
   // ==================== 策略组公共列表 ====================
 
@@ -420,75 +420,75 @@ function main(config, profileName) {
     }
 
     const excludeRegex =
-      /(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|访问|支持|教程|关注|更新|作者|加入|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author)/i;
+      /(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|访问|支持|教程|关注|更新|作者|加入|超时|重启|维护|暂停|失效|公告|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author)/i;
 
     function getPriority(name) {
       // 香港
       if (
-        /(香港|🇭🇰|\\bHK\\b|Hong\\s*Kong|HKG)/i.test(name)
+        /(香港|🇭🇰|\bHK\b|Hong\s*Kong|HKG)/i.test(name)
       ) {
         return 10;
       }
 
       // 澳门
       if (
-        /(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG)/i.test(name)
+        /(澳门|澳門|濠江|🇲🇴|\bMO\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG)/i.test(name)
       ) {
         return 15;
       }
 
       // 台湾
       if (
-        /(台湾|台灣|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH)/i.test(name)
+        /(台湾|台灣|🇹🇼|\bTW\b|Taiwan|TPE|TSA|KHH)/i.test(name)
       ) {
         return 20;
       }
 
       // 新加坡
       if (
-        /(新加坡|狮城|獅城|🇸🇬|\\bSG\\b|Singapore|SIN|XSP)/i.test(name)
+        /(新加坡|狮城|獅城|🇸🇬|\bSG\b|Singapore|SIN|XSP)/i.test(name)
       ) {
         return 30;
       }
 
       // 日本
       if (
-        /(日本|🇯🇵|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK)/i.test(name)
+        /(日本|🇯🇵|\bJP\b|Japan|樱花|🌸|东京|大阪|NRT|HND|KIX|CTS|FUK)/i.test(name)
       ) {
         return 40;
       }
 
       // 韩国
       if (
-        /(韩国|韓國|首尔|首爾|🇰🇷|\\bKR\\b|\\bKOR\\b|Korea)/i.test(name)
+        /(韩国|韓國|首尔|首爾|🇰🇷|\bKR\b|\bKOR\b|Korea)/i.test(name)
       ) {
         return 50;
       }
 
       // 美国
       if (
-        /(美国|美國|🇺🇸|\\bUS\\b|\\bUSA\\b|United\\s*States|LAX|SFO|JFK|SJC|SEA|IAD|ORD|ATL|DFW|MIA)/i.test(name)
+        /(美|🇺🇸|\bUS\b|\bUSA\b|United\s*States|LAX|SFO|JFK|SJC|SEA|IAD|ORD|ATL|DFW|MIA)/i.test(name)
       ) {
         return 60;
       }
 
       // 英国
       if (
-        /(英国|英國|🇬🇧|\\bUK\\b|\\bGB\\b|United\\s*Kingdom|London|LHR|LGW)/i.test(name)
+        /(英国|英國|🇬🇧|\bUK\b|\bGB\b|United\s*Kingdom|London|LHR|LGW)/i.test(name)
       ) {
         return 70;
       }
 
       // 德国
       if (
-        /(德国|德國|🇩🇪|\\bDE\\b|Germany|Frankfurt|FRA|MUC)/i.test(name)
+        /(德国|德國|🇩🇪|\bDE\b|Germany|Frankfurt|FRA|MUC)/i.test(name)
       ) {
         return 80;
       }
 
       // 法国
       if (
-        /(法国|法國|🇫🇷|\\bFR\\b|France|Paris|CDG)/i.test(name)
+        /(法国|法國|🇫🇷|\bFR\b|France|Paris|CDG)/i.test(name)
       ) {
         return 90;
       }
