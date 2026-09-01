@@ -4,7 +4,10 @@
 //
 // 由 Clash Verge Rev 桌面版脚本适配而来，安卓端差异：
 //   1. 移除 TUN 覆盖 —— Android 上由 FlClash 的 VPN 模式（VpnService）自行接管
-//   2. find-process-mode 改为 off —— Android 无法匹配其他应用的进程，strict 只会空耗资源
+//   2. find-process-mode 保持 strict —— mihomo 在 Android 上 PROCESS-NAME 规则可匹配应用包名，用于 Gemini/NotebookLM APP 分流
+//      ⚠️ 重要：FlClash 应用层会用「覆写编辑器 → 常规 → 查找进程」开关的值覆盖此设置（默认关闭 = off）。
+//      必须在 FlClash 界面里打开「查找进程」开关，PROCESS-NAME 包名规则才会生效（见 issue #2100，进程解析经
+//      getConnectionOwnerUid() → 包名，链路本身可用）。仅靠脚本设置无效。
 //   3. keep-alive-interval 放宽到 30 —— 省电，减少移动网络下的频繁唤醒
 //   4. 移除 quic-go-disable-gso —— 仅 Linux 内核有效，Android 上无用
 
@@ -38,7 +41,9 @@ function main(config, profileName) {
   config.ipv6 = true;
   config["unified-delay"] = true;
   config["tcp-concurrent"] = true;
-  config["find-process-mode"] = "off";
+  // 注意：此值会被 FlClash 应用层「覆写 → 常规 → 查找进程」开关覆盖，
+  // 手机上需手动开启该开关（=always），否则 PROCESS-NAME 包名规则不生效
+  config["find-process-mode"] = "strict";
   config["keep-alive-interval"] = 30;
   config["keep-alive-idle"] = 600;
 
@@ -1016,8 +1021,34 @@ function main(config, profileName) {
 
     // ==================== Gemini / NotebookLM ====================
 
-    // Gemini
+    // 安卓 APP 按包名分流（mihomo 在 Android 上 PROCESS-NAME 匹配应用包名；
+    // APP 对话流量走 www.google.com 等通用域名，域名规则拦不到，只能按包名识别。
+    // 桌面端无此包名进程，规则不命中、无副作用）
+    // Gemini APP
+    "PROCESS-NAME,com.google.android.apps.bard,谷歌AI",
+    // NotebookLM APP
+    "PROCESS-NAME,com.google.android.apps.labs.language.tailwind,谷歌AI",
+
+    // Gemini 网页 / 主域名
     "DOMAIN-SUFFIX,gemini.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,gemini.google,谷歌AI",
+    "DOMAIN-SUFFIX,gemini.gstatic.com,谷歌AI",
+
+    // Gemini APP 专属后端（这些是 Gemini 独有、非通用 AI 的 googleapis.com 子域，
+    // 必须赶在 RULE-SET,AI 的宽后缀 .googleapis.com 之前精确命中，否则会被「人工智能」组抢走）
+    "DOMAIN-SUFFIX,aida.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,aicode.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,geller-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,robinfrontend-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,cloudaicompanion.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,cloudcode-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,notebooklm-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,notebooklm.googleapis.com,谷歌AI",
+
+    // Gemini API 开发者门户 / Jules（AI 编码代理）
+    "DOMAIN,ai.google.dev,谷歌AI",
+    "DOMAIN-SUFFIX,jules.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,jules.google,谷歌AI",
 
     // Gemini Notebook 当前正式入口
     "DOMAIN-SUFFIX,notebook.google.com,谷歌AI",
@@ -1033,11 +1064,16 @@ function main(config, profileName) {
     "DOMAIN-SUFFIX,aistudio.google.com,谷歌AI",
     "DOMAIN-SUFFIX,bard.google.com,谷歌AI",
     "DOMAIN-SUFFIX,deepmind.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,deepmind.google,谷歌AI",
+    "DOMAIN-SUFFIX,deepmind.com,谷歌AI",
+    "DOMAIN-SUFFIX,generativeai.google,谷歌AI",
     "DOMAIN-SUFFIX,makersuite.google.com,谷歌AI",
+    "DOMAIN,alkalimakersuite-pa.clients6.google.com,谷歌AI",
     "DOMAIN-SUFFIX,labs.google.com,谷歌AI",
 
     // Gemini API
     "DOMAIN-SUFFIX,generativelanguage.googleapis.com,谷歌AI",
+    "DOMAIN,proactivebackend-pa.googleapis.com,谷歌AI",
 
     // 其他 AI
     "RULE-SET,AI,人工智能",
