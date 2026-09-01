@@ -108,6 +108,15 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 
 ---
 
+## 效果截图
+
+| Clash Verge Rev | FlClash |
+| --- | --- |
+| ![Clash Verge Rev 代理组 - 上半](./images/clash-verge-proxy-1.png) | ![FlClash 策略组 - 上半](./images/flclash-proxy-1.jpg) |
+| ![Clash Verge Rev 代理组 - 下半](./images/clash-verge-proxy-2.png) | ![FlClash 策略组 - 下半](./images/flclash-proxy-2.jpg) |
+
+---
+
 ## 代理组架构
 
 ### 核心组（8 个）
