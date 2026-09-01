@@ -1032,8 +1032,34 @@ function main(config, profileName) {
 
     // ==================== Gemini / NotebookLM ====================
 
-    // Gemini
+    // 安卓 APP 按包名分流（mihomo 在 Android 上 PROCESS-NAME 匹配应用包名；
+    // APP 对话流量走 www.google.com 等通用域名，域名规则拦不到，只能按包名识别。
+    // 桌面端无此包名进程，规则不命中、无副作用）
+    // Gemini APP
+    "PROCESS-NAME,com.google.android.apps.bard,谷歌AI",
+    // NotebookLM APP
+    "PROCESS-NAME,com.google.android.apps.labs.language.tailwind,谷歌AI",
+
+    // Gemini 网页 / 主域名
     "DOMAIN-SUFFIX,gemini.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,gemini.google,谷歌AI",
+    "DOMAIN-SUFFIX,gemini.gstatic.com,谷歌AI",
+
+    // Gemini APP 专属后端（这些是 Gemini 独有、非通用 AI 的 googleapis.com 子域，
+    // 必须赶在 RULE-SET,AI 的宽后缀 .googleapis.com 之前精确命中，否则会被「人工智能」组抢走）
+    "DOMAIN-SUFFIX,aida.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,aicode.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,geller-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,robinfrontend-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,cloudaicompanion.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,cloudcode-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,notebooklm-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,notebooklm.googleapis.com,谷歌AI",
+
+    // Gemini API 开发者门户 / Jules（AI 编码代理）
+    "DOMAIN,ai.google.dev,谷歌AI",
+    "DOMAIN-SUFFIX,jules.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,jules.google,谷歌AI",
 
     // Gemini Notebook 当前正式入口
     "DOMAIN-SUFFIX,notebook.google.com,谷歌AI",
@@ -1049,11 +1075,16 @@ function main(config, profileName) {
     "DOMAIN-SUFFIX,aistudio.google.com,谷歌AI",
     "DOMAIN-SUFFIX,bard.google.com,谷歌AI",
     "DOMAIN-SUFFIX,deepmind.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,deepmind.google,谷歌AI",
+    "DOMAIN-SUFFIX,deepmind.com,谷歌AI",
+    "DOMAIN-SUFFIX,generativeai.google,谷歌AI",
     "DOMAIN-SUFFIX,makersuite.google.com,谷歌AI",
+    "DOMAIN,alkalimakersuite-pa.clients6.google.com,谷歌AI",
     "DOMAIN-SUFFIX,labs.google.com,谷歌AI",
 
     // Gemini API
     "DOMAIN-SUFFIX,generativelanguage.googleapis.com,谷歌AI",
+    "DOMAIN,proactivebackend-pa.googleapis.com,谷歌AI",
 
     // 其他 AI
     "RULE-SET,AI,人工智能",
