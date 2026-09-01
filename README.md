@@ -110,10 +110,21 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 
 ## 效果截图
 
-| Clash Verge Rev | FlClash |
-| --- | --- |
-| ![Clash Verge Rev 代理组 - 上半](./images/clash-verge-proxy-1.png) | ![FlClash 策略组 - 上半](./images/flclash-proxy-1.jpg) |
-| ![Clash Verge Rev 代理组 - 下半](./images/clash-verge-proxy-2.png) | ![FlClash 策略组 - 下半](./images/flclash-proxy-2.jpg) |
+### Clash Verge Rev（桌面端）
+
+<div align="center">
+  <img src="./images/clash-verge-proxy-1.png" width="49%" alt="Clash Verge Rev 代理组（上半）">
+  <img src="./images/clash-verge-proxy-2.png" width="49%" alt="Clash Verge Rev 代理组（下半）">
+</div>
+
+### FlClash（Android）
+
+<div align="center">
+  <img src="./images/flclash-proxy-1.jpg" width="26%" alt="FlClash 策略组（上半）">
+  <img src="./images/flclash-proxy-2.jpg" width="26%" alt="FlClash 策略组（下半）">
+</div>
+
+> 两组截图均为同一份列表的上下两屏，横向拼接即为完整的代理组清单。点击图片可查看原图。
 
 ---
 
