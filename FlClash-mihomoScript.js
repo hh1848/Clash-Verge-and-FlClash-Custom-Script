@@ -1065,7 +1065,45 @@ function main(config, profileName) {
     "com.unionpay", // 云闪付
     "com.sinovatech", // 联通
     "com.greenpoint", // 中国移动
-    "com.icbc"
+    "com.icbc",
+    "com.pingan", // 平安系
+    "com.cmbchina", // 招商银行
+    "com.bankcomm", // 交通银行
+    "com.psbc", // 邮储银行
+    "com.ecitic", // 中信银行
+    // 手机厂商 OPPO / 一加 / vivo 系（渠道服游戏、应用商店都在这些包名下）
+    "com.oplus",
+    "com.heytap",
+    "com.nearme",
+    "com.oppo",
+    "com.coloros",
+    "com.oneplus",
+    "com.vivo",
+    "com.bbk",
+    // 长尾大厂：视频 / 音乐 / 直播 / 生活 / 工具
+    "com.qiyi", // 爱奇艺
+    "com.youku", // 优酷
+    "com.kugou", // 酷狗
+    "com.jd", // 京东金融等（京东商城本身是 com.jingdong）
+    "com.qihoo", // 360 系
+    "com.sohu", // 搜狐 / 搜狗输入法
+    "com.ucmobile", // UC 浏览器
+    "com.quark", // 夸克
+    "com.douyu", // 斗鱼
+    "com.duowan", // 虎牙
+    "com.alicloud", // 阿里云盘
+    "me.ele", // 饿了么
+    "com.anjuke", // 安居客
+    "com.achievo", // 唯品会
+    "com.homelink", // 链家
+    "com.beike", // 贝壳
+    "com.jingyao", // 哈啰
+    "com.umetrip", // 航旅纵横
+    "com.qunar", // 去哪儿
+    "com.kuaikan", // 快看漫画
+    "com.moji", // 墨迹天气
+    // 所有 cn.* 包名空间（WPS、虎扑等大量国内 App 采用）
+    "cn"
   ];
 
   // 包名无规律的主流国内 App（精确匹配）

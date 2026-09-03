@@ -413,7 +413,7 @@ auto-detect-interface: true
 | `quic-go-disable-gso` | 启用 | **移除** | 仅 Linux 内核有效，Android 无用 |
 | `keep-alive-interval` | `15` | `30` | 省电，减少移动网络频繁唤醒 |
 | `find-process-mode` | `strict` | `strict` | Android 上匹配应用包名，用于 App 分流 |
-| 国内应用直连 | **无** | 新增 8 条（7 条 `PROCESS-NAME` 精确包名 + 1 条 `PROCESS-NAME-REGEX` 厂商前缀，置顶） | 所有国内 App 整应用强制直连：腾讯/阿里/字节/百度/网易/美团/京东/拼多多/B站/微博/小红书/米哈游等 37 个厂商前缀 + 支付宝/滴滴/12306/携程等特殊包名，覆盖域名列表收不齐的小程序业务域名 / 游戏服务器 IP；**需在 FlClash 打开「查找进程」开关**，正则需 mihomo v1.18.8+ |
+| 国内应用直连 | **无** | 新增 8 条（7 条 `PROCESS-NAME` 精确包名 + 1 条 `PROCESS-NAME-REGEX` 厂商前缀，置顶） | 所有国内 App 整应用强制直连：73 个厂商包名前缀（腾讯/阿里/字节/百度/网易/美团/京东/拼多多/B站/微博/小红书/爱奇艺/优酷/360/OPPO/vivo/游戏厂商/运营商/银行等，含全部 `cn.*` 包名空间）+ 9 个特殊包名（支付宝/滴滴/12306/携程等），覆盖域名列表收不齐的小程序业务域名 / 游戏服务器 IP；**需在 FlClash 打开「查找进程」开关**，正则需 mihomo v1.18.8+ |
 | 代理组 / 规则 / Rule Providers | 59 / 76 / 40 | 59 / 84 / 40 | FlClash 多 8 条国内应用直连 |
 
 ---
