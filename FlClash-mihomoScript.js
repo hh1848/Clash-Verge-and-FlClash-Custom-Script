@@ -1052,13 +1052,14 @@ function main(config, profileName) {
     "com.meituan",
     // 高德
     "com.autonavi",
-    // 游戏厂商：米哈游 / 鹰角 / 库洛 / 游卡 / 边锋
+    // 游戏厂商：米哈游 / 鹰角 / 库洛 / 游卡 / 边锋 / 三国杀渠道服
     "com.mihoyo", // (?i) 大小写不敏感，覆盖 com.miHoYo
     "com.hypergryph",
     "com.kurogame",
     "com.yoka",
     "com.bianfeng",
     "com.bf",
+    "com.sgs10th", // 三国杀：一将成名渠道服（com.sgs10th.nearme.gamecenter 等）
     // 运营商 / 金融
     "com.chinamworld", // 建行、中行
     "com.unionpay", // 云闪付
