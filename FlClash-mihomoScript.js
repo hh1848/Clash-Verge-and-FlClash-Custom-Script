@@ -1003,19 +1003,94 @@ function main(config, profileName) {
   ];
 
   // ==================== 国内应用直连（Android 包名）====================
+  // 目标：所有国内 App 整应用直连，不依赖域名列表是否收录。
+  // 原理：Android 上 mihomo 的 PROCESS-NAME 匹配应用包名；常用厂商包名有规律
+  // （com.tencent / com.taobao / com.netease ...），用 PROCESS-NAME-REGEX 按前缀
+  // 一网打尽；包名无规律的（支付宝 / 滴滴 / 12306 等）走精确匹配。
+  // ⚠️ 需在 FlClash「覆写 → 常规 → 查找进程」打开开关，否则包名规则不生效（见 issue #2100）。
+  // ⚠️ PROCESS-NAME-REGEX 需 mihomo v1.18.8+（FlClash 近年版本均内置）。
+
+  const cnAppPackagePrefixes = [
+    // 腾讯系（微信、QQ、王者、腾讯视频、应用宝、腾讯游戏 com.tencent.tmgp.* ...）
+    "com.tencent",
+    // 阿里系（淘宝、天猫、闲鱼、钉钉、 UC 夸克入口）
+    "com.taobao",
+    "com.alibaba",
+    "com.alipay",
+    "com.eg.android", // 支付宝正式包名 com.eg.android.AlipayGphone
+    // 拼多多
+    "com.xunmeng",
+    // 小米系（含米家、小爱、应用商店）
+    "com.xiaomi",
+    "com.miui",
+    "com.duokan", // 多看
+    // 华为 / 荣耀系
+    "com.huawei",
+    "com.hihonor",
+    // 字节系（抖音、今日头条、西瓜、番茄）
+    "com.ss.android",
+    // 快手
+    "com.smile",
+    // 百度系（百度 App、地图、网盘、贴吧）
+    "com.baidu",
+    // 网易系（云音乐、邮箱大师、网易游戏）
+    "com.netease",
+    // B 站
+    "com.bilibili",
+    // 微博
+    "com.sina",
+    // 知乎 / 豆瓣 / 酷安 / 小红书
+    "com.zhihu",
+    "com.douban",
+    "com.coolapk",
+    "com.xingin",
+    // 京东
+    "com.jingdong",
+    // 美团 / 大众点评
+    "com.sankuai",
+    "com.dianping",
+    "com.meituan",
+    // 高德
+    "com.autonavi",
+    // 游戏厂商：米哈游 / 鹰角 / 库洛 / 游卡 / 边锋
+    "com.mihoyo", // (?i) 大小写不敏感，覆盖 com.miHoYo
+    "com.hypergryph",
+    "com.kurogame",
+    "com.yoka",
+    "com.bianfeng",
+    "com.bf",
+    // 运营商 / 金融
+    "com.chinamworld", // 建行、中行
+    "com.unionpay", // 云闪付
+    "com.sinovatech", // 联通
+    "com.greenpoint", // 中国移动
+    "com.icbc"
+  ];
+
+  // 包名无规律的主流国内 App（精确匹配）
+  const cnAppExactPackages = [
+    "com.sdu.didi.ps", // 滴滴出行
+    "ctrip.android.view", // 携程旅行
+    "com.MobileTicket", // 铁路 12306
+    "com.tongcheng.android", // 同程旅行
+    "com.wuba", // 58同城
+    "com.android.bankabc", // 农业银行
+    "com.ct.client" // 中国电信
+  ];
+
+  const cnAppPrefixRegex = cnAppPackagePrefixes
+    .map(p => p.replace(/\./g, "\\."))
+    .join("|");
 
   const processNameCNApps = [
-    // 微信（含所有小程序：宅印等，业务域名不在任何规则列表里，必须整应用直连）
-    "PROCESS-NAME,com.tencent.mm,直接连接",
-
-    // 手机 QQ
-    "PROCESS-NAME,com.tencent.mobileqq,直接连接",
-
-    // 三国杀十周年（游卡）
-    "PROCESS-NAME,com.yoka.newsgs,直接连接",
-
-    // 三国杀移动版（边锋）
-    "PROCESS-NAME,com.bf.sanguosha,直接连接"
+    // 1) 特殊包名精确直连
+    ...cnAppExactPackages.map(
+      p => "PROCESS-NAME," + p + ",直接连接"
+    ),
+    // 2) 常见厂商包名前缀批量直连（大小写不敏感）
+    "PROCESS-NAME-REGEX,(?i)^(" +
+      cnAppPrefixRegex +
+      "),直接连接"
   ];
 
   // ==================== 分流规则 ====================
