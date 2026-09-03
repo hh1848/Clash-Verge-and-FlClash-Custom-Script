@@ -149,6 +149,8 @@ function main(config, profileName) {
       "+.push.apple.com",
       "+.bing.com",
 
+      "+.cn",
+
       "rule-set:Direct",
       "rule-set:Private",
       "rule-set:China"
@@ -181,6 +183,11 @@ function main(config, profileName) {
     "nameserver-policy": {
       "rule-set:Advertising,AWAvenueAds":
         "rcode://success",
+
+      "+.cn": [
+        "https://dns.alidns.com/dns-query",
+        "https://doh.pub/dns-query"
+      ],
 
       "rule-set:Direct,Private,China": [
         "https://dns.alidns.com/dns-query",
@@ -1131,6 +1138,12 @@ function main(config, profileName) {
 
     // Microsoft
     "RULE-SET,Microsoft,微软服务",
+
+    // 所有 .cn 域名强制直连。
+    // 原因：666OS 的 Proxy 列表混入了少量 .cn 域名（如 +.amd.com.cn、+.airbnb.cn），
+    // 而本脚本 RULE-SET,Proxy 在 RULE-SET,China 之前，导致 developer.amd.com.cn
+    // 这类国内站被送进代理出口，部分节点/站点风控下直接打不开。
+    "DOMAIN-SUFFIX,cn,国内流量",
 
     // 其他代理
     "RULE-SET,Proxy,国外流量",

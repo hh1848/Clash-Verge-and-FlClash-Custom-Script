@@ -73,7 +73,7 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
         ┌────────────────┼────────────────┐
         ▼                ▼                ▼
   proxy-groups         rules         rule-providers
-   (59 个)            (75 条)          (40 个)
+   (59 个)            (76 条)          (40 个)
         │
         ├── dns（Fake-IP + 国内外分流）
         ├── sniffer（HTTP / TLS / QUIC）
@@ -101,7 +101,7 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 | 项目 | 数量 |
 | --- | --- |
 | 代理组 | **59** |
-| 分流规则 | **75** |
+| 分流规则 | **76** |
 | Rule Providers | **40** |
 
 两个版本脚本生成的代理组、规则、Rule Providers **完全一致**，差异只在 TUN、进程查找、保活间隔等客户端适配项（见[两版差异](#两版脚本差异)）。
@@ -261,7 +261,7 @@ USE · USED · TOTAL · EXPIRE · EMAIL · Panel · Channel · Author
 
 ## 分流规则
 
-共 **75 条**，自上而下匹配：
+共 **76 条**，自上而下匹配：
 
 | 顺序 | 规则 | 目标 | 条数 |
 | --- | --- | --- | --- |
@@ -275,7 +275,9 @@ USE · USED · TOTAL · EXPIRE · EMAIL · Panel · Channel · Author
 | 8 | `DOMAIN-KEYWORD,speedtest` + `Speedtest` | `网络测试` | 2 |
 | 9 | `Twitter` / `Telegram` / `SocialMedia` / `NewsMedia` | 对应服务组 | 4 |
 | 10 | `DOMAIN-SUFFIX,steamserver.net` | `直接连接` | 1 |
-| 11 | `Games` / `Crypto` / `Emby` / `Netflix` / `YouTube` / `Streaming` / `Apple` / `Google` / `github` / `Microsoft` / `Proxy` / `China` | 对应组 | 12 |
+| 11 | `Games` / `Crypto` / `Emby` / `Netflix` / `YouTube` / `Streaming` / `Apple` / `Google` / `github` / `Microsoft` | 对应组 | 10 |
+| 12 | `DOMAIN-SUFFIX,cn` — 所有 .cn 域名强制直连 | `国内流量` | 1 |
+| 13 | `Proxy` / `China` | 对应组 | 2 |
 | 12 | IP CIDR 规则（`no-resolve`） | 对应组 / `REJECT` | 12 |
 | 末 | `MATCH` | `兜底流量` | 1 |
 
@@ -411,7 +413,7 @@ auto-detect-interface: true
 | `quic-go-disable-gso` | 启用 | **移除** | 仅 Linux 内核有效，Android 无用 |
 | `keep-alive-interval` | `15` | `30` | 省电，减少移动网络频繁唤醒 |
 | `find-process-mode` | `strict` | `strict` | Android 上匹配应用包名，用于 App 分流 |
-| 代理组 / 规则 / Rule Providers | 59 / 75 / 40 | 59 / 75 / 40 | 完全一致 |
+| 代理组 / 规则 / Rule Providers | 59 / 76 / 40 | 59 / 76 / 40 | 完全一致 |
 
 ---
 
