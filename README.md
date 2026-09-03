@@ -104,7 +104,7 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 | 分流规则 | **76** |
 | Rule Providers | **40** |
 
-两个版本脚本生成的代理组、规则、Rule Providers **完全一致**，差异只在 TUN、进程查找、保活间隔等客户端适配项（见[两版差异](#两版脚本差异)）。
+两个版本脚本生成的代理组、Rule Providers **完全一致**，规则 FlClash 版多 4 条国内应用直连（`PROCESS-NAME` 包名，置顶），其余差异只在 TUN、进程查找、保活间隔等客户端适配项（见[两版差异](#两版脚本差异)）。
 
 ---
 
@@ -413,7 +413,8 @@ auto-detect-interface: true
 | `quic-go-disable-gso` | 启用 | **移除** | 仅 Linux 内核有效，Android 无用 |
 | `keep-alive-interval` | `15` | `30` | 省电，减少移动网络频繁唤醒 |
 | `find-process-mode` | `strict` | `strict` | Android 上匹配应用包名，用于 App 分流 |
-| 代理组 / 规则 / Rule Providers | 59 / 76 / 40 | 59 / 76 / 40 | 完全一致 |
+| 国内应用直连 | **无** | 新增 4 条 `PROCESS-NAME` 包名规则（置顶） | 微信（含小程序）、手机 QQ、三国杀整应用强制直连，覆盖域名列表收不齐的小程序业务域名 / 游戏服务器 IP；**需在 FlClash 打开「查找进程」开关** |
+| 代理组 / 规则 / Rule Providers | 59 / 76 / 40 | 59 / 80 / 40 | FlClash 多 4 条国内应用直连 |
 
 ---
 

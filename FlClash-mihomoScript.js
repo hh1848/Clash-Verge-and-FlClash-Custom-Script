@@ -1002,9 +1002,32 @@ function main(config, profileName) {
     )
   ];
 
+  // ==================== 国内应用直连（Android 包名）====================
+
+  const processNameCNApps = [
+    // 微信（含所有小程序：宅印等，业务域名不在任何规则列表里，必须整应用直连）
+    "PROCESS-NAME,com.tencent.mm,直接连接",
+
+    // 手机 QQ
+    "PROCESS-NAME,com.tencent.mobileqq,直接连接",
+
+    // 三国杀十周年（游卡）
+    "PROCESS-NAME,com.yoka.newsgs,直接连接",
+
+    // 三国杀移动版（边锋）
+    "PROCESS-NAME,com.bf.sanguosha,直接连接"
+  ];
+
   // ==================== 分流规则 ====================
 
   config.rules = [
+    // ==================== 国内应用直连（Android 包名）====================
+    // Android 上 mihomo 的 PROCESS-NAME 匹配应用包名，可整应用强制直连，
+    // 覆盖域名列表收不齐的场景：小程序业务域名（宅印等）、游戏服务器 IP 等。
+    // 放在最前，保证不被广告 REJECT / QUIC 阻断 / 兜底代理抢先命中。
+    // ⚠️ 需在 FlClash「覆写 → 常规 → 查找进程」打开开关，否则包名规则不生效（见 issue #2100）。
+    ...processNameCNApps,
+
     // 广告与跟踪
     "RULE-SET,Tracking,REJECT",
     "RULE-SET,AWAvenueAds,REJECT",
