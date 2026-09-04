@@ -73,7 +73,7 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
         ┌────────────────┼────────────────┐
         ▼                ▼                ▼
   proxy-groups         rules         rule-providers
-   (59 个)            (76 条)          (40 个)
+   (59 个)            (85 条)          (40 个)
         │
         ├── dns（Fake-IP + 国内外分流）
         ├── sniffer（HTTP / TLS / QUIC）
@@ -101,7 +101,7 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 | 项目 | 数量 |
 | --- | --- |
 | 代理组 | **59** |
-| 分流规则 | **76** |
+| 分流规则 | **85** |
 | Rule Providers | **40** |
 
 两个版本脚本生成的代理组、Rule Providers **完全一致**，规则 FlClash 版多 8 条国内应用直连（7 条 `PROCESS-NAME` 精确包名 + 1 条 `PROCESS-NAME-REGEX` 厂商前缀，置顶），其余差异只在 TUN、进程查找、保活间隔等客户端适配项（见[两版差异](#两版脚本差异)）。
@@ -261,7 +261,7 @@ USE · USED · TOTAL · EXPIRE · EMAIL · Panel · Channel · Author
 
 ## 分流规则
 
-共 **76 条**，自上而下匹配：
+共 **85 条**，自上而下匹配：
 
 | 顺序 | 规则 | 目标 | 条数 |
 | --- | --- | --- | --- |
@@ -270,15 +270,16 @@ USE · USED · TOTAL · EXPIRE · EMAIL · Panel · Channel · Author
 | 3 | `ukwifi` | `UKwifi` | 1 |
 | 4 | `LocationDKS` | `抖快书定位` | 1 |
 | 5 | `Private` / `Direct` / `XPTV` / `Download` / `AppleCN` | `直接连接` | 5 |
-| 6 | Gemini / NotebookLM（含 2 条 `PROCESS-NAME` 包名） | `谷歌AI` | 31 |
-| 7 | `AI` | `人工智能` | 1 |
-| 8 | `DOMAIN-KEYWORD,speedtest` + `Speedtest` | `网络测试` | 2 |
-| 9 | `Twitter` / `Telegram` / `SocialMedia` / `NewsMedia` | 对应服务组 | 4 |
-| 10 | `DOMAIN-SUFFIX,steamserver.net` | `直接连接` | 1 |
-| 11 | `Games` / `Crypto` / `Emby` / `Netflix` / `YouTube` / `Streaming` / `Apple` / `Google` / `github` / `Microsoft` | 对应组 | 10 |
-| 12 | `DOMAIN-SUFFIX,cn` — 所有 .cn 域名强制直连 | `国内流量` | 1 |
-| 13 | `Proxy` / `China` | 对应组 | 2 |
-| 12 | IP CIDR 规则（`no-resolve`） | 对应组 / `REJECT` | 12 |
+| 6 | Gemini / NotebookLM（含 2 条 `PROCESS-NAME` 包名） | `谷歌AI` | 40 |
+| 7 | `googleapis.com` / `googleusercontent.com` / `apis.google.com` 交还 `谷歌服务`（防 AI 列表宽后缀劫持 Gmail 翻译）+ AI 接口补齐 | `谷歌服务`/`谷歌AI` | 9 |
+| 8 | `AI` | `人工智能` | 1 |
+| 9 | `DOMAIN-KEYWORD,speedtest` + `Speedtest` | `网络测试` | 2 |
+| 10 | `Twitter` / `Telegram` / `SocialMedia` / `NewsMedia` | 对应服务组 | 4 |
+| 11 | `DOMAIN-SUFFIX,steamserver.net` | `直接连接` | 1 |
+| 12 | `Games` / `Crypto` / `Emby` / `Netflix` / `YouTube` / `Streaming` / `Apple` / `Google` / `github` / `Microsoft` | 对应组 | 10 |
+| 13 | `DOMAIN-SUFFIX,cn` — 所有 .cn 域名强制直连 | `国内流量` | 1 |
+| 14 | `Proxy` / `China` | 对应组 | 2 |
+| 15 | IP CIDR 规则（`no-resolve`） | 对应组 / `REJECT` | 12 |
 | 末 | `MATCH` | `兜底流量` | 1 |
 
 ### 关于 QUIC / HTTP/3
@@ -414,7 +415,7 @@ auto-detect-interface: true
 | `keep-alive-interval` | `15` | `30` | 省电，减少移动网络频繁唤醒 |
 | `find-process-mode` | `strict` | `strict` | Android 上匹配应用包名，用于 App 分流 |
 | 国内应用直连 | **无** | 新增 8 条（7 条 `PROCESS-NAME` 精确包名 + 1 条 `PROCESS-NAME-REGEX` 厂商前缀，置顶） | 所有国内 App 整应用强制直连：73 个厂商包名前缀（腾讯/阿里/字节/百度/网易/美团/京东/拼多多/B站/微博/小红书/爱奇艺/优酷/360/OPPO/vivo/游戏厂商/运营商/银行等，含全部 `cn.*` 包名空间）+ 9 个特殊包名（支付宝/滴滴/12306/携程等），覆盖域名列表收不齐的小程序业务域名 / 游戏服务器 IP；**需在 FlClash 打开「查找进程」开关**，正则需 mihomo v1.18.8+ |
-| 代理组 / 规则 / Rule Providers | 59 / 76 / 40 | 59 / 84 / 40 | FlClash 多 8 条国内应用直连 |
+| 代理组 / 规则 / Rule Providers | 59 / 85 / 40 | 59 / 93 / 40 | FlClash 多 8 条国内应用直连 |
 
 ---
 

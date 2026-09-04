@@ -1219,6 +1219,21 @@ function main(config, profileName) {
     "DOMAIN-SUFFIX,generativelanguage.googleapis.com,谷歌AI",
     "DOMAIN,proactivebackend-pa.googleapis.com,谷歌AI",
 
+    // 补齐 AI 列表中的真实 AI 接口（上游 AI 列表收录但上方窄规则未覆盖的）
+    "DOMAIN-SUFFIX,aisandbox-pa.googleapis.com,谷歌AI",
+    "DOMAIN,alkalicore-pa.clients6.google.com,谷歌AI",
+    "DOMAIN,webchannel-alkalimakersuite-pa.clients6.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,antigravity-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,antigravity.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,daily-cloudcode-pa.googleapis.com,谷歌AI",
+
+    // 上游 AI 列表含宽后缀 +.googleapis.com / +.googleusercontent.com / +.apis.google.com，
+    // 会把 Gmail 页面翻译、邮件后端 API、附件头像等非 AI 流量抢进「谷歌AI」，
+    // 与走「谷歌服务」的主站出口不一致导致卡顿。先于 AI 列表整体交还「谷歌服务」。
+    "DOMAIN-SUFFIX,googleapis.com,谷歌服务",
+    "DOMAIN-SUFFIX,googleusercontent.com,谷歌服务",
+    "DOMAIN,apis.google.com,谷歌服务",
+
     // 其他 AI
     "RULE-SET,AI,人工智能",
 
