@@ -100,8 +100,11 @@ function main(config, profileName) {
     {},
     config.hosts || {},
     {
+      // ---- 以下为个人环境自定义项，非通用默认值 ----
+      // 小米路由器后台域名指向内网（仅适用于 192.168.31.x 网段环境）
       "miwifi.com": "192.168.31.2",
 
+      // WiFi Calling ePDG 固定 IP（英国运营商专属，IP 可能随运营商调整，需定期核对）
       "epdg.epc.mnc010.mcc234.pub.3gppnetwork.org": [
         "87.194.8.8",
         "87.194.88.8",
@@ -409,6 +412,8 @@ function main(config, profileName) {
 
   // ==================== 全球手动节点排序 ====================
   // 仅影响“全球手动”代理组，不修改其他代理组和机场原始节点顺序。
+  // 已知限制：此排序只覆盖 config.proxies（直接节点）；proxy-providers 的节点
+  // 经 use: 由 mihomo 内核展开，JS 层无法干预其顺序，将按订阅原始顺序追加。
 
   function getGlobalManualProxies() {
     if (!Array.isArray(config.proxies)) {
@@ -574,10 +579,10 @@ function main(config, profileName) {
         "澳门策略",
         "欧盟策略",
         "全球手动",
-        "冷门自选",
-        "直接连接"
+        "冷门自选"
       ],
 
+      // fail-closed：全部代理失效时不回落 DIRECT，避免国外流量泄露真实 IP
       icon:
         "https://github.com/Koolson/Qure/raw/master/IconSet/Color/ULB.png"
     },
@@ -1226,6 +1231,9 @@ function main(config, profileName) {
     "DOMAIN-SUFFIX,antigravity-pa.googleapis.com,谷歌AI",
     "DOMAIN-SUFFIX,antigravity.googleapis.com,谷歌AI",
     "DOMAIN-SUFFIX,daily-cloudcode-pa.googleapis.com,谷歌AI",
+    // 维护提示：未来新增的 *.googleapis.com AI 后端会被下方宽后缀规则接走，
+    // 上线新 Google AI 服务时需在此手动补充对应域名。
+    "DOMAIN-SUFFIX,aiplatform.googleapis.com,谷歌AI",
 
     // 上游 AI 列表含宽后缀 +.googleapis.com / +.googleusercontent.com / +.apis.google.com，
     // 会把 Gmail 页面翻译、邮件后端 API、附件头像等非 AI 流量抢进「谷歌AI」，
