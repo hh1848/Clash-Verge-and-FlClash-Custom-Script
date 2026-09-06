@@ -1294,6 +1294,9 @@ function main(config, profileName) {
     // 这类国内站被送进代理出口，部分节点/站点风控下直接打不开。
     "DOMAIN-SUFFIX,cn,国内流量",
 
+    // 非 .cn TLD 的国内站白名单（阿里云等国内主机对境外 IP 会直接断连）
+    "DOMAIN-SUFFIX,jcwenhua.online,国内流量",
+
     // 其他代理
     "RULE-SET,Proxy,国外流量",
 
