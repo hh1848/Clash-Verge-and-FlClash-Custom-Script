@@ -1176,6 +1176,21 @@ function main(config, profileName) {
     // 其他代理
     "RULE-SET,Proxy,国外流量",
 
+    // IP 纯净度 / 风险检测站：必须经代理出口访问才有意义（直连只会显示真实 IP）。
+    // browserleaks.com / myip.la 被上游 China 列表误收，需抢在 China 之前接管。
+    "DOMAIN-SUFFIX,ping0.cc,国外流量",
+    "DOMAIN-SUFFIX,ipcheck.ing,国外流量",
+    "DOMAIN-SUFFIX,ip.sb,国外流量",
+    "DOMAIN-SUFFIX,ipinfo.io,国外流量",
+    "DOMAIN-SUFFIX,ip-api.com,国外流量",
+    "DOMAIN-SUFFIX,ipify.org,国外流量",
+    "DOMAIN-SUFFIX,ipleak.net,国外流量",
+    "DOMAIN-SUFFIX,browserleaks.com,国外流量",
+    "DOMAIN-SUFFIX,whoer.net,国外流量",
+    "DOMAIN-SUFFIX,scamalytics.com,国外流量",
+    "DOMAIN-SUFFIX,ipqualityscore.com,国外流量",
+    "DOMAIN-SUFFIX,myip.la,国外流量",
+
     // 中国大陆
     "RULE-SET,China,国内流量",
 
