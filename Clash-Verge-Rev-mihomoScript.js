@@ -50,9 +50,12 @@ function main(config, profileName) {
     ],
     "auto-route": true,
     // auto-redirect 仅 Linux 生效，Windows 下无意义，不设置。
-    // strict-route 刻意不开：Windows 下会阻断非 TUN 接口流量，
-    // 导致局域网访问/虚拟网卡失效；DNS 防泄漏由 dns-hijack + auto-route 基本覆盖
-    //（Windows 局域网侧劫持存在官方文档列明的限制，无法 100%）。
+    // strict-route 开启（2026-09-06 起）：TUN 模式下 Windows 多网卡存在
+    // on-link DNS 逃逸（校园网/企业网网卡的 DNS 服务器同网段直连，绕过 TUN），
+    // strict-route 通过防火墙规则强制全部流量进 TUN 堵住该口子。
+    // 代价：WSL2/VMware/VirtualBox 等虚拟网络及局域网入站可能受影响，
+    // 如相关功能异常需自行评估是否回退本项。
+    "strict-route": true,
     "auto-detect-interface": true
   });
 
