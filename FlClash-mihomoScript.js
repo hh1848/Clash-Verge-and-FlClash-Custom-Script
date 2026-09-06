@@ -158,8 +158,10 @@ function main(config, profileName) {
     ],
 
     nameserver: [
-      "https://cloudflare-dns.com/dns-query",
-      "https://dns.google/dns-query"
+      // 显式绑定「故障转移」组：DNS 出口与业务组选择解耦，
+      // 业务组切直连时 DoH 查询链路不受影响（fail-closed：组挂则 DNS 挂）
+      "https://cloudflare-dns.com/dns-query#故障转移",
+      "https://dns.google/dns-query#故障转移"
     ],
 
     "direct-nameserver": [
@@ -187,8 +189,8 @@ function main(config, profileName) {
       ],
 
       "rule-set:Speedtest,Twitter,Telegram,SocialMedia,NewsMedia,Games,Crypto,Emby,Netflix,YouTube,Streaming,Apple,Google,Microsoft,Proxy": [
-        "https://dns.google/dns-query",
-        "https://cloudflare-dns.com/dns-query"
+        "https://dns.google/dns-query#故障转移",
+        "https://cloudflare-dns.com/dns-query#故障转移"
       ]
     }
   };
