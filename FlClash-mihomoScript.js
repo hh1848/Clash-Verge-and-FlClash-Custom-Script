@@ -38,7 +38,12 @@ function main(config, profileName) {
   // ==================== 基础配置 ====================
 
   config.mode = "rule";
-  config.ipv6 = true;
+  // IPv6 刻意关闭（与 FlClash 应用层 IPv6 开关的关闭状态对齐）：
+  // dns.ipv6=true 会让 DNS 返回 AAAA，而 VpnService 未启用 IPv6 时，
+  // 兜底直连场景下浏览器的 AAAA 先试可能经物理网卡 IPv6 绕开 mihomo
+  // 造成 DNS/流量泄露。未来启用 IPv6 时需同步修改此处、下方 dns.ipv6
+  // 和 FlClash 应用开关三处。
+  config.ipv6 = false;
   config["unified-delay"] = true;
   config["tcp-concurrent"] = true;
   // 注意：此值会被 FlClash 应用层「覆写 → 常规 → 查找进程」开关覆盖，
@@ -123,7 +128,8 @@ function main(config, profileName) {
   config.dns = {
     enable: true,
 
-    ipv6: true,
+    // 与全局 ipv6: false 对齐（见上方注释），杜绝 AAAA 泄露/超时路径
+    ipv6: false,
 
     "enhanced-mode": "fake-ip",
 
