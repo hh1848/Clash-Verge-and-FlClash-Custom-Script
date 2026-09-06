@@ -342,6 +342,8 @@ function main(config, profileName) {
       ],
 
       "include-all": true,
+      "exclude-filter":
+        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
 
       filter: filter,
 
@@ -370,6 +372,8 @@ function main(config, profileName) {
       hidden: true,
 
       "include-all": true,
+      "exclude-filter":
+        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
 
       filter: filter,
 
@@ -403,6 +407,8 @@ function main(config, profileName) {
       hidden: true,
 
       "include-all": true,
+      "exclude-filter":
+        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
 
       filter: filter,
 
@@ -631,6 +637,8 @@ function main(config, profileName) {
       proxies: selectPY.slice(),
 
       "include-all": true,
+      "exclude-filter":
+        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
 
       filter: FilterAL,
 
@@ -848,6 +856,8 @@ function main(config, profileName) {
       type: "select",
 
       "include-all": true,
+      "exclude-filter":
+        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
 
       filter: FilterOT,
 
@@ -1357,6 +1367,7 @@ function main(config, profileName) {
       behavior: "domain",
       format: "mrs",
       interval: 86400,
+      proxy: "故障转移",
       url: url
     };
   }
@@ -1367,6 +1378,7 @@ function main(config, profileName) {
       behavior: "domain",
       format: "yaml",
       interval: 86400,
+      proxy: "故障转移",
       url: url
     };
   }
@@ -1377,6 +1389,7 @@ function main(config, profileName) {
       behavior: "ipcidr",
       format: "mrs",
       interval: 86400,
+      proxy: "故障转移",
       url: url
     };
   }
@@ -1544,6 +1557,8 @@ function main(config, profileName) {
       format: "text",
 
       interval: 86400,
+
+      proxy: "故障转移",
 
       url:
         "https://raw.githubusercontent.com/HenryChiao/wificalling/refs/heads/main/qiao/wificalling.list"
