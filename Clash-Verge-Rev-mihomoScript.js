@@ -51,7 +51,8 @@ function main(config, profileName) {
     "auto-route": true,
     // auto-redirect 仅 Linux 生效，Windows 下无意义，不设置。
     // strict-route 刻意不开：Windows 下会阻断非 TUN 接口流量，
-    // 导致局域网访问/虚拟网卡失效；DNS 防泄漏已由 dns-hijack + auto-route 覆盖。
+    // 导致局域网访问/虚拟网卡失效；DNS 防泄漏由 dns-hijack + auto-route 基本覆盖
+    //（Windows 局域网侧劫持存在官方文档列明的限制，无法 100%）。
     "auto-detect-interface": true
   });
 
@@ -359,7 +360,7 @@ function main(config, profileName) {
 
       filter: filter,
 
-      "empty-fallback": "COMPATIBLE",
+      "empty-fallback": "REJECT",
 
       icon: icon
     };
@@ -387,7 +388,7 @@ function main(config, profileName) {
 
       filter: filter,
 
-      "empty-fallback": "COMPATIBLE",
+      "empty-fallback": "REJECT",
 
       icon:
         "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Auto.png"
@@ -420,7 +421,7 @@ function main(config, profileName) {
 
       filter: filter,
 
-      "empty-fallback": "COMPATIBLE",
+      "empty-fallback": "REJECT",
 
       icon: icon
     };
@@ -561,7 +562,7 @@ function main(config, profileName) {
 
       filter: FilterAL,
 
-      "empty-fallback": "COMPATIBLE",
+      "empty-fallback": "REJECT",
 
       icon:
         "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Clubhouse.png"
@@ -598,7 +599,8 @@ function main(config, profileName) {
         "冷门自选"
       ],
 
-      // fail-closed：全部代理失效时不回落 DIRECT，避免国外流量泄露真实 IP
+      // fail-closed：全部代理失效时不回落 DIRECT；空组（empty-fallback: REJECT）
+      // 也拒绝连接而非直连——「节点全部失效」和「组里没有节点」都不泄露真实 IP
       icon:
         "https://github.com/Koolson/Qure/raw/master/IconSet/Color/ULB.png"
     },
@@ -647,7 +649,7 @@ function main(config, profileName) {
 
       filter: FilterAL,
 
-      "empty-fallback": "COMPATIBLE",
+      "empty-fallback": "REJECT",
 
       icon:
         "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Speedtest.png"
@@ -864,7 +866,7 @@ function main(config, profileName) {
 
       filter: FilterOT,
 
-      "empty-fallback": "COMPATIBLE",
+      "empty-fallback": "REJECT",
 
       icon:
         "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Europe_Map.png"
