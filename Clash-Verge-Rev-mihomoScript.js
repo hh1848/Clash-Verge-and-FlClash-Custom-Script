@@ -151,6 +151,9 @@ function main(config, profileName) {
     // 与全局 ipv6: false 对齐（见上方注释），杜绝 AAAA 泄露/超时路径
     ipv6: false,
 
+    // DNS 缓存算法：arc 平均命中率优于默认 lru（需 mihomo 内核 ≥ 1.19.2）
+    "cache-algorithm": "arc",
+
     "enhanced-mode": "fake-ip",
 
     "fake-ip-range": "198.18.0.1/16",
@@ -160,12 +163,21 @@ function main(config, profileName) {
       "+.local",
 
       "time.*.com",
+      "time.*.gov",
       "ntp.*.com",
+      "+.time.edu.cn",
+      "+.ntp.org.cn",
 
       "+.market.xiaomi.com",
       "+.pub.3gppnetwork.org",
       "+.push.apple.com",
       "+.bing.com",
+
+      // 游戏主机 NAT 穿透（仅共享网络给 Switch/Xbox/PS 时需要，无此场景可删除）
+      "+.srv.nintendo.net",
+      "+.xboxlive.com",
+      "+.playstation.net",
+      "stun.*.*",
 
       "+.cn",
 
@@ -230,25 +242,33 @@ function main(config, profileName) {
     "(?i)^(?=.*(坡|🇸🇬|\\bSG\\b|Sing|SIN|XSP))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterJP =
-    "(?i)^(?=.*(日|🇯🇵|樱花|🌸|东京|大阪|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$";
+    "(?i)^(?=.*(日|🇯🇵|樱花|🌸|东京|大阪|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|尼日尔|排除2|5x)).*$";
 
   const FilterKR =
     "(?i)^(?=.*(韩|🇰🇷|韓|首尔|南朝鲜|\\bKR\\b|\\bKOR\\b|Korea))(?!.*(排除1|排除2|5x|Africa)).*$";
 
+  // 保留单字「美」：机场存在名为「美」「美 01」的美国节点；
+  // 含「美」字但非美国的地区（南美/中美洲/拉美等）用负向预查排除。
   const FilterUS =
-    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(Plus|Australia|5x)).*$";
+    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|Argentina|Brazil|Plus|Australia|5x)).*$";
 
   const FilterTW =
     "(?i)^(?=.*(台|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
 
+  // 补充英文国名/城市名（Germany/Paris 等），避免纯英文命名的欧盟节点漏进「冷门自选」；
+  // 同时排除含「拉」「比」「罗」等汉字但属拉美的地区名（圣保罗/哥伦比亚/委内瑞拉/巴拉圭）与俄罗斯。
   const FilterEU =
-    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|圣保罗|哥伦比亚|委内瑞拉|巴拉圭|俄罗斯|排除1|排除2|5x)).*$";
 
   const FilterMO =
     "(?i)^(?=.*(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG))(?!.*(排除1|排除2|5x)).*$";
 
+  // 冷门自选：排除所有主流地区关键词。「美/拉/比/罗」等与拉美地名冲突的单字用断言限定，
+  // 使 南美/中美洲/拉美/圣保罗/哥伦比亚/委内瑞拉/巴拉圭/俄罗斯 等冷门地区名
+  // 不被「美/拉/比/罗」字连带排除，可正常进入冷门自选；
+  // 美国/拉脱维亚/比利时/罗马尼亚 仍按原样被排除。
   const FilterOT =
-    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bUK\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|London|United\\s*Kingdom|MFM|MOG|Taipa|Coloane|Cotai))";
+    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|(?<!南)(?<!中)(?<!丁)(?<!拉)美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比(?=利)|保(?=加)|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉(?=脱)|立|卢|马耳他|荷|波|葡|罗(?=马)|斯洛伐|斯洛文|西班牙|瑞(?=士|典)|英|倫敦|伦敦|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bUK\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki|MFM|MOG|Taipa|Coloane|Cotai))";
 
   // 机场信息节点统一排除规则（流量/到期/公告等），供各策略组 exclude-filter 复用
   const excludeInfoNodes =
@@ -274,69 +294,14 @@ function main(config, profileName) {
     "直接连接"
   ];
 
-  const selectPY = [
-    "默认代理",
-    "故障转移",
-    "香港策略",
-    "狮城策略",
-    "日本策略",
-    "韩国策略",
-    "美国策略",
-    "台湾策略",
-    "澳门策略",
-    "欧盟策略",
-    "冷门自选",
-    "全球手动",
-    "直接连接"
-  ];
+  // 以下列表均由 selectFB 派生，仅默认选中项（首项）不同；增删策略组时只需改上面
+  const selectPY = ["默认代理", ...selectFB];
 
-  const selectDC = [
-    "直接连接",
-    "默认代理",
-    "故障转移",
-    "香港策略",
-    "狮城策略",
-    "日本策略",
-    "韩国策略",
-    "美国策略",
-    "台湾策略",
-    "澳门策略",
-    "欧盟策略",
-    "冷门自选",
-    "全球手动"
-  ];
+  const selectDC = ["直接连接", ...selectPY.slice(0, -1)];
 
-  const selectUS = [
-    "美国策略",
-    "默认代理",
-    "故障转移",
-    "香港策略",
-    "狮城策略",
-    "日本策略",
-    "韩国策略",
-    "台湾策略",
-    "澳门策略",
-    "欧盟策略",
-    "冷门自选",
-    "全球手动",
-    "直接连接"
-  ];
+  const selectUS = ["美国策略", ...selectPY.filter(item => item !== "美国策略")];
 
-  const selectSG = [
-    "狮城策略",
-    "默认代理",
-    "故障转移",
-    "香港策略",
-    "日本策略",
-    "韩国策略",
-    "美国策略",
-    "台湾策略",
-    "澳门策略",
-    "欧盟策略",
-    "冷门自选",
-    "全球手动",
-    "直接连接"
-  ];
+  const selectSG = ["狮城策略", ...selectPY.filter(item => item !== "狮城策略")];
 
   // ==================== 工具函数 ====================
 
@@ -505,6 +470,11 @@ function main(config, profileName) {
         /(韩国|韓國|首尔|首爾|🇰🇷|\bKR\b|\bKOR\b|Korea)/i.test(name)
       ) {
         return 50;
+      }
+
+      // 南美/中美洲/拉美：含「美」字但非美国，不参与美国排序
+      if (/(南美|中美洲|拉美|拉丁|阿根廷|巴西|Argentina|Brazil)/i.test(name)) {
+        return 1000;
       }
 
       // 美国
@@ -1074,8 +1044,12 @@ function main(config, profileName) {
     "RULE-SET,Download,直接连接",
     "RULE-SET,AppleCN,直接连接",
 
-    // 阻止 QUIC（置于直连规则后：局域网与明确直连站点的 UDP 443 不受影响，
-    // 仅代理方向流量禁用 QUIC，防止 QUIC 绕过嗅探分流）
+    // 阻止 QUIC：拦下 UDP 443，浏览器自动回退 TCP(TLS)，保证嗅探/分流稳定，
+    // 并规避部分节点 UDP 转发劣化。注意：本规则位于 China 列表之前，
+    // 国内站点的 QUIC 同样会被拦（回退 TCP，通常无感知）；仅上方直连列表
+    // （Private/Direct/XPTV/Download/AppleCN）命中者保留 QUIC。
+    // 若想恢复国内 QUIC，可将本规则移至 RULE-SET,China 之后，但代价是
+    // 所有在此之前的域名规则（Gemini/YouTube/Google 等）命中的代理流量也会恢复 QUIC。
     "AND,((DST-PORT,443),(NETWORK,UDP)),REJECT",
 
     // ==================== Gemini / NotebookLM ====================
@@ -1467,7 +1441,8 @@ function main(config, profileName) {
 
       interval: 3600,
 
-      proxy: "DIRECT",
+      // 与其他 provider 统一经「故障转移」下载（kelee 域名直连在部分网络下不稳）
+      proxy: "故障转移",
 
       url:
         "https://rule.kelee.one/Clash/GitHub.yaml"
