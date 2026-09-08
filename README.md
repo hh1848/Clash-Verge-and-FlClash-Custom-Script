@@ -266,10 +266,10 @@ USE · USED · TOTAL · EXPIRE · EMAIL · Panel · Channel · Author
 | 顺序 | 规则 | 目标 | 条数 |
 | --- | --- | --- | --- |
 | 1 | `Tracking` / `AWAvenueAds` / `Advertising` | `REJECT` | 3 |
-| 2 | `AND,((DST-PORT,443),(NETWORK,UDP))` | `REJECT` | 1 |
-| 3 | `ukwifi` | `UKwifi` | 1 |
-| 4 | `LocationDKS` | `抖快书定位` | 1 |
-| 5 | `Private` / `Direct` / `XPTV` / `Download` / `AppleCN` | `直接连接` | 5 |
+| 2 | `ukwifi` | `UKwifi` | 1 |
+| 3 | `LocationDKS` | `抖快书定位` | 1 |
+| 4 | `Private` / `Direct` / `XPTV` / `Download` / `AppleCN` | `直接连接` | 5 |
+| 5 | `AND,((DST-PORT,443),(NETWORK,UDP))` | `REJECT` | 1 |
 | 6 | Gemini / NotebookLM（含 2 条 `PROCESS-NAME` 包名） | `谷歌AI` | 41 |
 | 7 | `googleapis.com` / `googleusercontent.com` / `apis.google.com` 交还 `谷歌服务`（防 AI 列表宽后缀劫持 Gmail 翻译）+ AI 接口补齐 | `谷歌服务`/`谷歌AI` | 9 |
 | 8 | `AI` | `人工智能` | 1 |
@@ -284,7 +284,7 @@ USE · USED · TOTAL · EXPIRE · EMAIL · Panel · Channel · Author
 
 ### 关于 QUIC / HTTP/3
 
-第 4 条规则会**阻止 UDP 443**，因此 QUIC / HTTP/3 默认被禁用，连接通常回落到 TCP / HTTP/2。
+QUIC 拦截规则位于直连规则组（Private/Direct 等五组）**之后**，因此局域网与明确直连站点的 UDP 443 不受影响；其余流量 QUIC / HTTP/3 被禁用，连接回落到 TCP / HTTP/2。
 
 绝大多数网站不受影响。如果某个应用强依赖 QUIC，自行删除这条规则即可：
 

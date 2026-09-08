@@ -242,13 +242,17 @@ function main(config, profileName) {
     "(?i)^(?=.*(台|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterEU =
-    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU))(?!.*(排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterMO =
     "(?i)^(?=.*(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG))(?!.*(排除1|排除2|5x)).*$";
 
   const FilterOT =
-    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|MFM|MOG|Taipa|Coloane|Cotai))";
+    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bUK\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|London|United\\s*Kingdom|MFM|MOG|Taipa|Coloane|Cotai))";
+
+  // 机场信息节点统一排除规则（流量/到期/公告等），供各策略组 exclude-filter 复用
+  const excludeInfoNodes =
+    "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启";
 
   const FilterAL =
     "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|超时|重启|维护|暂停|失效|公告|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
@@ -368,8 +372,7 @@ function main(config, profileName) {
       ],
 
       "include-all": true,
-      "exclude-filter":
-        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
+      "exclude-filter": excludeInfoNodes,
 
       filter: filter,
 
@@ -392,14 +395,17 @@ function main(config, profileName) {
 
       lazy: true,
 
+      tolerance: 50,
+
+      "expected-status": "204",
+
       url:
         "https://www.google.com/generate_204",
 
       hidden: true,
 
       "include-all": true,
-      "exclude-filter":
-        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
+      "exclude-filter": excludeInfoNodes,
 
       filter: filter,
 
@@ -425,6 +431,8 @@ function main(config, profileName) {
 
       lazy: true,
 
+      "expected-status": "204",
+
       url:
         "https://www.google.com/generate_204",
 
@@ -433,8 +441,7 @@ function main(config, profileName) {
       hidden: true,
 
       "include-all": true,
-      "exclude-filter":
-        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
+      "exclude-filter": excludeInfoNodes,
 
       filter: filter,
 
@@ -600,6 +607,8 @@ function main(config, profileName) {
 
       lazy: true,
 
+      "expected-status": "204",
+
       url:
         "https://www.google.com/generate_204",
 
@@ -663,8 +672,7 @@ function main(config, profileName) {
       proxies: selectPY.slice(),
 
       "include-all": true,
-      "exclude-filter":
-        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
+      "exclude-filter": excludeInfoNodes,
 
       filter: FilterAL,
 
@@ -882,8 +890,7 @@ function main(config, profileName) {
       type: "select",
 
       "include-all": true,
-      "exclude-filter":
-        "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启",
+      "exclude-filter": excludeInfoNodes,
 
       filter: FilterOT,
 
@@ -1054,9 +1061,6 @@ function main(config, profileName) {
     "RULE-SET,AWAvenueAds,REJECT",
     "RULE-SET,Advertising,REJECT",
 
-    // 阻止 QUIC
-    "AND,((DST-PORT,443),(NETWORK,UDP)),REJECT",
-
     // WiFi Calling
     "RULE-SET,ukwifi,UKwifi",
 
@@ -1069,6 +1073,10 @@ function main(config, profileName) {
     "RULE-SET,XPTV,直接连接",
     "RULE-SET,Download,直接连接",
     "RULE-SET,AppleCN,直接连接",
+
+    // 阻止 QUIC（置于直连规则后：局域网与明确直连站点的 UDP 443 不受影响，
+    // 仅代理方向流量禁用 QUIC，防止 QUIC 绕过嗅探分流）
+    "AND,((DST-PORT,443),(NETWORK,UDP)),REJECT",
 
     // ==================== Gemini / NotebookLM ====================
 
@@ -1261,17 +1269,6 @@ function main(config, profileName) {
     };
   }
 
-  function domainYAML(url) {
-    return {
-      type: "http",
-      behavior: "domain",
-      format: "yaml",
-      interval: 86400,
-      proxy: "故障转移",
-      url: url
-    };
-  }
-
   function ipMRS(url) {
     return {
       type: "http",
@@ -1455,8 +1452,8 @@ function main(config, profileName) {
 
     // ---------- 广告 ----------
 
-    AWAvenueAds: domainYAML(
-      "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.yaml"
+    AWAvenueAds: domainMRS(
+      "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.mrs"
     ),
 
     // ---------- GitHub ----------
