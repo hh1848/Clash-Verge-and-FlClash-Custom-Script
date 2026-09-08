@@ -1,0 +1,1595 @@
+// FlClash (Android) 全局覆写脚本
+// 作用：保留当前机场的 proxies / proxy-providers，统一替换代理组、规则与 DNS。
+// 使用位置：FlClash → 配置 → 覆写 → 新建 JavaScript 覆写 → 粘贴本脚本 → 在配置中启用
+//
+// 由 Clash Verge Rev 桌面版脚本适配而来，安卓端差异：
+//   1. 移除 TUN 覆盖 —— Android 上由 FlClash 的 VPN 模式（VpnService）自行接管
+//   2. find-process-mode 保持 strict —— mihomo 在 Android 上 PROCESS-NAME 规则可匹配应用包名，用于 Gemini/NotebookLM APP 分流
+//      ⚠️ 重要：FlClash 应用层会用「覆写编辑器 → 常规 → 查找进程」开关的值覆盖此设置（默认关闭 = off）。
+//      必须在 FlClash 界面里打开「查找进程」开关，PROCESS-NAME 包名规则才会生效（见 issue #2100，进程解析经
+//      getConnectionOwnerUid() → 包名，链路本身可用）。仅靠脚本设置无效。
+//   3. keep-alive-interval 放宽到 30 —— 省电，减少移动网络下的频繁唤醒
+//   4. 移除 quic-go-disable-gso —— 仅 Linux 内核有效，Android 上无用
+
+function main(config, profileName) {
+  // 不处理 MihomoProPlus 模板本身
+  if (
+    typeof profileName === "string" &&
+    profileName.indexOf("MihomoProPlus") !== -1
+  ) {
+    return config;
+  }
+
+  const directProxyCount = Array.isArray(config.proxies)
+    ? config.proxies.length
+    : 0;
+
+  const providers = config["proxy-providers"];
+  const providerCount =
+    providers && typeof providers === "object"
+      ? Object.keys(providers).length
+      : 0;
+
+  // 没有节点时不处理
+  if (directProxyCount === 0 && providerCount === 0) {
+    return config;
+  }
+
+  // ==================== 基础配置 ====================
+
+  config.mode = "rule";
+  // IPv6 刻意关闭（与 FlClash 应用层 IPv6 开关的关闭状态对齐）：
+  // dns.ipv6=true 会让 DNS 返回 AAAA，而 VpnService 未启用 IPv6 时，
+  // 兜底直连场景下浏览器的 AAAA 先试可能经物理网卡 IPv6 绕开 mihomo
+  // 造成 DNS/流量泄露。未来启用 IPv6 时需同步修改此处、下方 dns.ipv6
+  // 和 FlClash 应用开关三处。
+  config.ipv6 = false;
+  config["unified-delay"] = true;
+  config["tcp-concurrent"] = true;
+  // 注意：此值会被 FlClash 应用层「覆写 → 常规 → 查找进程」开关覆盖，
+  // 手机上需手动开启该开关（=always），否则 PROCESS-NAME 包名规则不生效
+  config["find-process-mode"] = "strict";
+  config["keep-alive-interval"] = 30;
+  config["keep-alive-idle"] = 600;
+
+  // TUN 不做任何覆盖：FlClash 的 VPN 模式（TUN/Http 等）由应用内设置管理，
+  // 脚本侧设置 auto-redirect / stack 反而可能与 VpnService 冲突。
+
+  config.profile = Object.assign(
+    {},
+    config.profile || {},
+    {
+      "store-selected": true,
+      "store-fake-ip": true
+    }
+  );
+
+  // ==================== 流量嗅探 ====================
+
+  config.sniffer = {
+    enable: true,
+
+    sniff: {
+      HTTP: {
+        ports: [
+          80,
+          "8080-8880"
+        ],
+        "override-destination": true
+      },
+
+      TLS: {
+        ports: [
+          443,
+          8443
+        ]
+      },
+
+      QUIC: {
+        ports: [
+          443,
+          8443
+        ]
+      }
+    },
+
+    "skip-domain": [
+      "Mijia Cloud",
+      "+.push.apple.com"
+    ]
+  };
+
+  // ==================== Hosts ====================
+
+  config.hosts = Object.assign(
+    {},
+    config.hosts || {},
+    {
+      // ---- 以下为个人环境自定义项，非通用默认值 ----
+      // 小米路由器后台域名指向内网（仅适用于 192.168.31.x 网段环境）
+      "miwifi.com": "192.168.31.2",
+
+      // WiFi Calling ePDG 固定 IP（英国运营商专属，IP 可能随运营商调整，需定期核对）
+      "epdg.epc.mnc010.mcc234.pub.3gppnetwork.org": [
+        "87.194.8.8",
+        "87.194.88.8",
+        "87.194.89.8",
+        "87.194.9.8"
+      ],
+
+      "services.googleapis.cn": "services.googleapis.com",
+
+      "cn.bing.com": "www4.bing.com"
+    }
+  );
+
+  // ==================== DNS ====================
+
+  config.dns = {
+    enable: true,
+
+    // 与全局 ipv6: false 对齐（见上方注释），杜绝 AAAA 泄露/超时路径
+    ipv6: false,
+
+    "enhanced-mode": "fake-ip",
+
+    "fake-ip-range": "198.18.0.1/16",
+
+    "fake-ip-filter": [
+      "+.lan",
+      "+.local",
+
+      "time.*.com",
+      "ntp.*.com",
+
+      "+.market.xiaomi.com",
+      "+.pub.3gppnetwork.org",
+      "+.push.apple.com",
+      "+.bing.com",
+
+      "+.cn",
+
+      "rule-set:Direct",
+      "rule-set:Private",
+      "rule-set:China"
+    ],
+
+    "use-hosts": true,
+
+    "respect-rules": true,
+
+    "default-nameserver": [
+      "tls://223.5.5.5",
+      "tls://223.6.6.6"
+    ],
+
+    nameserver: [
+      // 显式绑定「故障转移」组：DNS 出口与业务组选择解耦，
+      // 业务组切直连时 DoH 查询链路不受影响（fail-closed：组挂则 DNS 挂）
+      "https://cloudflare-dns.com/dns-query#故障转移",
+      "https://dns.google/dns-query#故障转移"
+    ],
+
+    "direct-nameserver": [
+      "https://dns.alidns.com/dns-query",
+      "https://doh.pub/dns-query"
+    ],
+
+    "proxy-server-nameserver": [
+      "https://dns.alidns.com/dns-query",
+      "https://doh.pub/dns-query"
+    ],
+
+    "nameserver-policy": {
+      "rule-set:Advertising,AWAvenueAds":
+        "rcode://success",
+
+      "+.cn": [
+        "https://dns.alidns.com/dns-query",
+        "https://doh.pub/dns-query"
+      ],
+
+      "rule-set:Direct,Private,China": [
+        "https://dns.alidns.com/dns-query",
+        "https://doh.pub/dns-query"
+      ],
+
+      "rule-set:Speedtest,Twitter,Telegram,SocialMedia,NewsMedia,Games,Crypto,Emby,Netflix,YouTube,Streaming,Apple,Google,Microsoft,Proxy": [
+        "https://dns.google/dns-query#故障转移",
+        "https://cloudflare-dns.com/dns-query#故障转移"
+      ]
+    }
+  };
+
+  // ==================== 节点筛选 ====================
+
+  const FilterHK =
+    "(?i)^(?=.*(港|🇭🇰|\\bHK\\b|Hong|HKG))(?!.*(排除1|排除2|5x)).*$";
+
+  const FilterSG =
+    "(?i)^(?=.*(坡|🇸🇬|\\bSG\\b|Sing|SIN|XSP))(?!.*(排除1|排除2|5x)).*$";
+
+  const FilterJP =
+    "(?i)^(?=.*(日|🇯🇵|樱花|🌸|东京|大阪|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|排除2|5x)).*$";
+
+  const FilterKR =
+    "(?i)^(?=.*(韩|🇰🇷|韓|首尔|南朝鲜|\\bKR\\b|\\bKOR\\b|Korea))(?!.*(排除1|排除2|5x|Africa)).*$";
+
+  const FilterUS =
+    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(Plus|Australia|5x)).*$";
+
+  const FilterTW =
+    "(?i)^(?=.*(台|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
+
+  const FilterEU =
+    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom))(?!.*(排除1|排除2|5x)).*$";
+
+  const FilterMO =
+    "(?i)^(?=.*(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG))(?!.*(排除1|排除2|5x)).*$";
+
+  const FilterOT =
+    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bUK\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|London|United\\s*Kingdom|MFM|MOG|Taipa|Coloane|Cotai))";
+
+  // 机场信息节点统一排除规则（流量/到期/公告等），供各策略组 exclude-filter 复用
+  const excludeInfoNodes =
+    "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启";
+
+  const FilterAL =
+    "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|超时|重启|维护|暂停|失效|公告|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
+
+  // ==================== 策略组公共列表 ====================
+
+  const selectFB = [
+    "故障转移",
+    "香港策略",
+    "狮城策略",
+    "日本策略",
+    "韩国策略",
+    "美国策略",
+    "台湾策略",
+    "澳门策略",
+    "欧盟策略",
+    "冷门自选",
+    "全球手动",
+    "直接连接"
+  ];
+
+  const selectPY = [
+    "默认代理",
+    "故障转移",
+    "香港策略",
+    "狮城策略",
+    "日本策略",
+    "韩国策略",
+    "美国策略",
+    "台湾策略",
+    "澳门策略",
+    "欧盟策略",
+    "冷门自选",
+    "全球手动",
+    "直接连接"
+  ];
+
+  const selectDC = [
+    "直接连接",
+    "默认代理",
+    "故障转移",
+    "香港策略",
+    "狮城策略",
+    "日本策略",
+    "韩国策略",
+    "美国策略",
+    "台湾策略",
+    "澳门策略",
+    "欧盟策略",
+    "冷门自选",
+    "全球手动"
+  ];
+
+  const selectUS = [
+    "美国策略",
+    "默认代理",
+    "故障转移",
+    "香港策略",
+    "狮城策略",
+    "日本策略",
+    "韩国策略",
+    "台湾策略",
+    "澳门策略",
+    "欧盟策略",
+    "冷门自选",
+    "全球手动",
+    "直接连接"
+  ];
+
+  const selectSG = [
+    "狮城策略",
+    "默认代理",
+    "故障转移",
+    "香港策略",
+    "日本策略",
+    "韩国策略",
+    "美国策略",
+    "台湾策略",
+    "澳门策略",
+    "欧盟策略",
+    "冷门自选",
+    "全球手动",
+    "直接连接"
+  ];
+
+  // ==================== 工具函数 ====================
+
+  function selectGroup(
+    name,
+    proxiesList,
+    icon
+  ) {
+    return {
+      name: name,
+      type: "select",
+      proxies: proxiesList.slice(),
+      icon: icon
+    };
+  }
+
+  function regionSelect(
+    name,
+    filter,
+    autoName,
+    hashName,
+    rrName,
+    icon
+  ) {
+    return {
+      name: name,
+      type: "select",
+
+      proxies: [
+        autoName,
+        hashName,
+        rrName
+      ],
+
+      "include-all": true,
+      "exclude-filter": excludeInfoNodes,
+
+      filter: filter,
+
+      "empty-fallback": "REJECT",
+
+      icon: icon
+    };
+  }
+
+  function urlTest(
+    name,
+    filter
+  ) {
+    return {
+      name: name,
+
+      type: "url-test",
+
+      interval: 300,
+
+      lazy: true,
+
+      tolerance: 50,
+
+      "expected-status": "204",
+
+      url:
+        "https://www.google.com/generate_204",
+
+      hidden: true,
+
+      "include-all": true,
+      "exclude-filter": excludeInfoNodes,
+
+      filter: filter,
+
+      "empty-fallback": "REJECT",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Auto.png"
+    };
+  }
+
+  function loadBalance(
+    name,
+    filter,
+    strategy,
+    icon
+  ) {
+    return {
+      name: name,
+
+      type: "load-balance",
+
+      interval: 300,
+
+      lazy: true,
+
+      "expected-status": "204",
+
+      url:
+        "https://www.google.com/generate_204",
+
+      strategy: strategy,
+
+      hidden: true,
+
+      "include-all": true,
+      "exclude-filter": excludeInfoNodes,
+
+      filter: filter,
+
+      "empty-fallback": "REJECT",
+
+      icon: icon
+    };
+  }
+
+  // ==================== 全球手动节点排序 ====================
+  // 仅影响“全球手动”代理组，不修改其他代理组和机场原始节点顺序。
+  // 已知限制：此排序只覆盖 config.proxies（直接节点）；proxy-providers 的节点
+  // 经 use: 由 mihomo 内核展开，JS 层无法干预其顺序，将按订阅原始顺序追加。
+
+  function getGlobalManualProxies() {
+    if (!Array.isArray(config.proxies)) {
+      return [];
+    }
+
+    const excludeRegex =
+      /(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|访问|支持|教程|关注|更新|作者|加入|超时|重启|维护|暂停|失效|公告|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author)/i;
+
+    function getPriority(name) {
+      // 香港
+      if (
+        /(香港|🇭🇰|\bHK\b|Hong\s*Kong|HKG)/i.test(name)
+      ) {
+        return 10;
+      }
+
+      // 澳门
+      if (
+        /(澳门|澳門|濠江|🇲🇴|\bMO\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG)/i.test(name)
+      ) {
+        return 15;
+      }
+
+      // 台湾
+      if (
+        /(台湾|台灣|🇹🇼|\bTW\b|Taiwan|TPE|TSA|KHH)/i.test(name)
+      ) {
+        return 20;
+      }
+
+      // 新加坡
+      if (
+        /(新加坡|狮城|獅城|🇸🇬|\bSG\b|Singapore|SIN|XSP)/i.test(name)
+      ) {
+        return 30;
+      }
+
+      // 日本
+      if (
+        /(日本|🇯🇵|\bJP\b|Japan|樱花|🌸|东京|大阪|NRT|HND|KIX|CTS|FUK)/i.test(name)
+      ) {
+        return 40;
+      }
+
+      // 韩国
+      if (
+        /(韩国|韓國|首尔|首爾|🇰🇷|\bKR\b|\bKOR\b|Korea)/i.test(name)
+      ) {
+        return 50;
+      }
+
+      // 美国
+      if (
+        /(美|🇺🇸|\bUS\b|\bUSA\b|United\s*States|LAX|SFO|JFK|SJC|SEA|IAD|ORD|ATL|DFW|MIA)/i.test(name)
+      ) {
+        return 60;
+      }
+
+      // 英国
+      if (
+        /(英国|英國|🇬🇧|\bUK\b|\bGB\b|United\s*Kingdom|London|LHR|LGW)/i.test(name)
+      ) {
+        return 70;
+      }
+
+      // 德国
+      if (
+        /(德国|德國|🇩🇪|\bDE\b|Germany|Frankfurt|FRA|MUC)/i.test(name)
+      ) {
+        return 80;
+      }
+
+      // 法国
+      if (
+        /(法国|法國|🇫🇷|\bFR\b|France|Paris|CDG)/i.test(name)
+      ) {
+        return 90;
+      }
+
+      // 其他节点
+      return 1000;
+    }
+
+    return config.proxies
+      .map((proxy, index) => ({
+        name: proxy && proxy.name,
+        index: index
+      }))
+      .filter(
+        item =>
+          item.name &&
+          !excludeRegex.test(item.name)
+      )
+      .sort((a, b) => {
+        const priorityDiff =
+          getPriority(a.name) -
+          getPriority(b.name);
+
+        if (priorityDiff !== 0) {
+          return priorityDiff;
+        }
+
+        return a.index - b.index;
+      })
+      .map(item => item.name);
+  }
+
+  const globalManualProxies =
+    getGlobalManualProxies();
+
+  const globalManualProviders =
+    config["proxy-providers"] &&
+    typeof config["proxy-providers"] === "object"
+      ? Object.keys(config["proxy-providers"])
+      : [];
+
+  // ==================== 代理组 ====================
+
+  config["proxy-groups"] = [
+    {
+      name: "全球手动",
+
+      type: "select",
+
+      proxies: globalManualProxies,
+
+      use: globalManualProviders,
+
+      filter: FilterAL,
+
+      "empty-fallback": "REJECT",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Clubhouse.png"
+    },
+
+    selectGroup(
+      "默认代理",
+      selectFB,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Static.png"
+    ),
+
+    {
+      name: "故障转移",
+
+      type: "fallback",
+
+      interval: 300,
+
+      lazy: true,
+
+      "expected-status": "204",
+
+      url:
+        "https://www.google.com/generate_204",
+
+      proxies: [
+        "香港策略",
+        "狮城策略",
+        "日本策略",
+        "韩国策略",
+        "美国策略",
+        "台湾策略",
+        "澳门策略",
+        "欧盟策略",
+        "全球手动",
+        "冷门自选"
+      ],
+
+      // fail-closed：全部代理失效时不回落 DIRECT；空组（empty-fallback: REJECT）
+      // 也拒绝连接而非直连——「节点全部失效」和「组里没有节点」都不泄露真实 IP
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/ULB.png"
+    },
+
+    selectGroup(
+      "国外流量",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Global.png"
+    ),
+
+    selectGroup(
+      "国内流量",
+      selectDC,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/China.png"
+    ),
+
+    selectGroup(
+      "兜底流量",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Final.png"
+    ),
+
+    {
+      name: "直接连接",
+
+      type: "select",
+
+      proxies: [
+        "DIRECT"
+      ],
+
+      hidden: true,
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Direct.png"
+    },
+
+    {
+      name: "网络测试",
+
+      type: "select",
+
+      proxies: selectPY.slice(),
+
+      "include-all": true,
+      "exclude-filter": excludeInfoNodes,
+
+      filter: FilterAL,
+
+      "empty-fallback": "REJECT",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Speedtest.png"
+    },
+
+    {
+      name: "UKwifi",
+
+      type: "select",
+
+      proxies: [
+        "DIRECT",
+        "欧盟策略"
+      ],
+
+      icon:
+        "https://www.giffgaff.design/iconography/icons/library/coverage-signal.svg"
+    },
+
+    {
+      name: "抖快书定位",
+
+      type: "select",
+
+      proxies: [
+        "直接连接",
+        "香港策略",
+        "台湾策略",
+        "狮城策略",
+        "日本策略",
+        "韩国策略",
+        "美国策略",
+        "欧盟策略"
+      ],
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Null_Nation.png"
+    },
+
+    selectGroup(
+      "Emby服",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Emby.png"
+    ),
+
+    selectGroup(
+      "油管视频",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/YouTube.png"
+    ),
+
+    selectGroup(
+      "奈飞视频",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Netflix.png"
+    ),
+
+    selectGroup(
+      "国际媒体",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/DomesticMedia.png"
+    ),
+
+    selectGroup(
+      "新闻媒体",
+      selectUS,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Apple_News.png"
+    ),
+
+    selectGroup(
+      "电报消息",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Telegram_X.png"
+    ),
+
+    selectGroup(
+      "推特社交",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/X.png"
+    ),
+
+    selectGroup(
+      "社交平台",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/PBS.png"
+    ),
+
+    selectGroup(
+      "人工智能",
+      selectUS,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Bot.png"
+    ),
+
+    selectGroup(
+      "谷歌AI",
+      selectUS,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/AI.png"
+    ),
+
+    selectGroup(
+      "货币平台",
+      selectSG,
+      "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/Bitcloud.png"
+    ),
+
+    selectGroup(
+      "游戏平台",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Game.png"
+    ),
+
+    selectGroup(
+      "Github",
+      selectPY,
+      "https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/icon/04ProxySoft/github(1).png"
+    ),
+
+    selectGroup(
+      "微软服务",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Microsoft.png"
+    ),
+
+    selectGroup(
+      "谷歌服务",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Google_Search.png"
+    ),
+
+    selectGroup(
+      "苹果服务",
+      selectPY,
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Apple.png"
+    ),
+
+    regionSelect(
+      "香港策略",
+      FilterHK,
+      "香港自动",
+      "香港均衡-散列",
+      "香港均衡-轮询",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Hong_Kong.png"
+    ),
+
+    regionSelect(
+      "台湾策略",
+      FilterTW,
+      "台湾自动",
+      "台湾均衡-散列",
+      "台湾均衡-轮询",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png"
+    ),
+
+    regionSelect(
+      "狮城策略",
+      FilterSG,
+      "狮城自动",
+      "狮城均衡-散列",
+      "狮城均衡-轮询",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Singapore.png"
+    ),
+
+    regionSelect(
+      "日本策略",
+      FilterJP,
+      "日本自动",
+      "日本均衡-散列",
+      "日本均衡-轮询",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png"
+    ),
+
+    regionSelect(
+      "韩国策略",
+      FilterKR,
+      "韩国自动",
+      "韩国均衡-散列",
+      "韩国均衡-轮询",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Korea.png"
+    ),
+
+    regionSelect(
+      "美国策略",
+      FilterUS,
+      "美国自动",
+      "美国均衡-散列",
+      "美国均衡-轮询",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"
+    ),
+
+    regionSelect(
+      "欧盟策略",
+      FilterEU,
+      "欧盟自动",
+      "欧盟均衡-散列",
+      "欧盟均衡-轮询",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/European_Union.png"
+    ),
+
+    regionSelect(
+      "澳门策略",
+      FilterMO,
+      "澳门自动",
+      "澳门均衡-散列",
+      "澳门均衡-轮询",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Macao.png"
+    ),
+
+    {
+      name: "冷门自选",
+
+      type: "select",
+
+      "include-all": true,
+      "exclude-filter": excludeInfoNodes,
+
+      filter: FilterOT,
+
+      "empty-fallback": "REJECT",
+
+      icon:
+        "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Europe_Map.png"
+    },
+
+    urlTest(
+      "香港自动",
+      FilterHK
+    ),
+
+    urlTest(
+      "台湾自动",
+      FilterTW
+    ),
+
+    urlTest(
+      "狮城自动",
+      FilterSG
+    ),
+
+    urlTest(
+      "日本自动",
+      FilterJP
+    ),
+
+    urlTest(
+      "韩国自动",
+      FilterKR
+    ),
+
+    urlTest(
+      "美国自动",
+      FilterUS
+    ),
+
+    urlTest(
+      "欧盟自动",
+      FilterEU
+    ),
+
+    urlTest(
+      "澳门自动",
+      FilterMO
+    ),
+
+    loadBalance(
+      "香港均衡-散列",
+      FilterHK,
+      "consistent-hashing",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+    ),
+
+    loadBalance(
+      "台湾均衡-散列",
+      FilterTW,
+      "consistent-hashing",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+    ),
+
+    loadBalance(
+      "狮城均衡-散列",
+      FilterSG,
+      "consistent-hashing",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+    ),
+
+    loadBalance(
+      "日本均衡-散列",
+      FilterJP,
+      "consistent-hashing",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+    ),
+
+    loadBalance(
+      "韩国均衡-散列",
+      FilterKR,
+      "consistent-hashing",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+    ),
+
+    loadBalance(
+      "美国均衡-散列",
+      FilterUS,
+      "consistent-hashing",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+    ),
+
+    loadBalance(
+      "欧盟均衡-散列",
+      FilterEU,
+      "consistent-hashing",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+    ),
+
+    loadBalance(
+      "澳门均衡-散列",
+      FilterMO,
+      "consistent-hashing",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin_1.png"
+    ),
+
+    loadBalance(
+      "香港均衡-轮询",
+      FilterHK,
+      "round-robin",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+    ),
+
+    loadBalance(
+      "台湾均衡-轮询",
+      FilterTW,
+      "round-robin",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+    ),
+
+    loadBalance(
+      "狮城均衡-轮询",
+      FilterSG,
+      "round-robin",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+    ),
+
+    loadBalance(
+      "日本均衡-轮询",
+      FilterJP,
+      "round-robin",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+    ),
+
+    loadBalance(
+      "韩国均衡-轮询",
+      FilterKR,
+      "round-robin",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+    ),
+
+    loadBalance(
+      "美国均衡-轮询",
+      FilterUS,
+      "round-robin",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+    ),
+
+    loadBalance(
+      "欧盟均衡-轮询",
+      FilterEU,
+      "round-robin",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+    ),
+
+    loadBalance(
+      "澳门均衡-轮询",
+      FilterMO,
+      "round-robin",
+      "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Round_Robin.png"
+    )
+  ];
+
+  // ==================== 国内应用直连（Android 包名）====================
+  // 目标：所有国内 App 整应用直连，不依赖域名列表是否收录。
+  // 原理：Android 上 mihomo 的 PROCESS-NAME 匹配应用包名；常用厂商包名有规律
+  // （com.tencent / com.taobao / com.netease ...），用 PROCESS-NAME-REGEX 按前缀
+  // 一网打尽；包名无规律的（支付宝 / 滴滴 / 12306 等）走精确匹配。
+  // ⚠️ 需在 FlClash「覆写 → 常规 → 查找进程」打开开关，否则包名规则不生效（见 issue #2100）。
+  // ⚠️ PROCESS-NAME-REGEX 需 mihomo v1.18.8+（FlClash 近年版本均内置）。
+
+  const cnAppPackagePrefixes = [
+    // 腾讯系（微信、QQ、王者、腾讯视频、应用宝、腾讯游戏 com.tencent.tmgp.* ...）
+    "com.tencent",
+    // 阿里系（淘宝、天猫、闲鱼、钉钉、 UC 夸克入口）
+    "com.taobao",
+    "com.alibaba",
+    "com.alipay",
+    "com.eg.android", // 支付宝正式包名 com.eg.android.AlipayGphone
+    // 拼多多
+    "com.xunmeng",
+    // 小米系（含米家、小爱、应用商店）
+    "com.xiaomi",
+    "com.miui",
+    "com.duokan", // 多看
+    // 华为 / 荣耀系
+    "com.huawei",
+    "com.hihonor",
+    // 字节系（抖音、今日头条、西瓜、番茄）
+    "com.ss.android",
+    // 快手
+    "com.smile",
+    // 百度系（百度 App、地图、网盘、贴吧）
+    "com.baidu",
+    // 网易系（云音乐、邮箱大师、网易游戏）
+    "com.netease",
+    // B 站
+    "com.bilibili",
+    // 微博
+    "com.sina",
+    // 知乎 / 豆瓣 / 酷安 / 小红书
+    "com.zhihu",
+    "com.douban",
+    "com.coolapk",
+    "com.xingin",
+    // 京东
+    "com.jingdong",
+    // 美团 / 大众点评
+    "com.sankuai",
+    "com.dianping",
+    "com.meituan",
+    // 高德
+    "com.autonavi",
+    // 游戏厂商：米哈游 / 鹰角 / 库洛 / 游卡 / 边锋 / 三国杀渠道服
+    "com.mihoyo", // (?i) 大小写不敏感，覆盖 com.miHoYo
+    "com.hypergryph",
+    "com.kurogame",
+    "com.yoka",
+    "com.bianfeng",
+    "com.bf",
+    "com.sgs10th", // 三国杀：一将成名渠道服（com.sgs10th.nearme.gamecenter 等）
+    // 运营商 / 金融
+    "com.chinamworld", // 建行、中行
+    "com.unionpay", // 云闪付
+    "com.sinovatech", // 联通
+    "com.greenpoint", // 中国移动
+    "com.icbc",
+    "com.pingan", // 平安系
+    "com.cmbchina", // 招商银行
+    "com.bankcomm", // 交通银行
+    "com.psbc", // 邮储银行
+    "com.ecitic", // 中信银行
+    // 手机厂商 OPPO / 一加 / vivo 系（渠道服游戏、应用商店都在这些包名下）
+    "com.oplus",
+    "com.heytap",
+    "com.nearme",
+    "com.oppo",
+    "com.coloros",
+    "com.oneplus",
+    "com.vivo",
+    "com.bbk",
+    // 长尾大厂：视频 / 音乐 / 直播 / 生活 / 工具
+    "com.qiyi", // 爱奇艺
+    "com.youku", // 优酷
+    "com.kugou", // 酷狗
+    "com.jd", // 京东金融等（京东商城本身是 com.jingdong）
+    "com.qihoo", // 360 系
+    "com.sohu", // 搜狐 / 搜狗输入法
+    "com.ucmobile", // UC 浏览器
+    "com.quark", // 夸克
+    "com.douyu", // 斗鱼
+    "com.duowan", // 虎牙
+    "com.alicloud", // 阿里云盘
+    "me.ele", // 饿了么
+    "com.anjuke", // 安居客
+    "com.achievo", // 唯品会
+    "com.homelink", // 链家
+    "com.beike", // 贝壳
+    "com.jingyao", // 哈啰
+    "com.umetrip", // 航旅纵横
+    "com.qunar", // 去哪儿
+    "com.kuaikan", // 快看漫画
+    "com.moji", // 墨迹天气
+    // 所有 cn.* 包名空间（WPS、虎扑等大量国内 App 采用）
+    "cn"
+  ];
+
+  // 包名无规律的主流国内 App（精确匹配）
+  const cnAppExactPackages = [
+    "com.sdu.didi.ps", // 滴滴出行
+    "ctrip.android.view", // 携程旅行
+    "com.MobileTicket", // 铁路 12306
+    "com.tongcheng.android", // 同程旅行
+    "com.wuba", // 58同城
+    "com.android.bankabc", // 农业银行
+    "com.ct.client" // 中国电信
+  ];
+
+  const cnAppPrefixRegex = cnAppPackagePrefixes
+    .map(p => p.replace(/\./g, "\\."))
+    .join("|");
+
+  const processNameCNApps = [
+    // 1) 特殊包名精确直连
+    ...cnAppExactPackages.map(
+      p => "PROCESS-NAME," + p + ",直接连接"
+    ),
+    // 2) 常见厂商包名前缀批量直连（大小写不敏感）
+    "PROCESS-NAME-REGEX,(?i)^(" +
+      cnAppPrefixRegex +
+      "),直接连接"
+  ];
+
+  // ==================== 分流规则 ====================
+
+  config.rules = [
+    // ==================== 国内应用直连（Android 包名）====================
+    // Android 上 mihomo 的 PROCESS-NAME 匹配应用包名，可整应用强制直连，
+    // 覆盖域名列表收不齐的场景：小程序业务域名（宅印等）、游戏服务器 IP 等。
+    // 放在最前，保证不被广告 REJECT / QUIC 阻断 / 兜底代理抢先命中。
+    // ⚠️ 需在 FlClash「覆写 → 常规 → 查找进程」打开开关，否则包名规则不生效（见 issue #2100）。
+    ...processNameCNApps,
+
+    // 广告与跟踪
+    "RULE-SET,Tracking,REJECT",
+    "RULE-SET,AWAvenueAds,REJECT",
+    "RULE-SET,Advertising,REJECT",
+
+    // WiFi Calling
+    "RULE-SET,ukwifi,UKwifi",
+
+    // 抖音 / 快手 / 小红书定位
+    "RULE-SET,LocationDKS,抖快书定位",
+
+    // 私有 / 直连
+    "RULE-SET,Private,直接连接",
+    "RULE-SET,Direct,直接连接",
+    "RULE-SET,XPTV,直接连接",
+    "RULE-SET,Download,直接连接",
+    "RULE-SET,AppleCN,直接连接",
+
+    // 阻止 QUIC（置于直连规则后：局域网与明确直连站点的 UDP 443 不受影响，
+    // 仅代理方向流量禁用 QUIC，防止 QUIC 绕过嗅探分流）
+    "AND,((DST-PORT,443),(NETWORK,UDP)),REJECT",
+
+    // ==================== Gemini / NotebookLM ====================
+
+    // 安卓 APP 按包名分流（mihomo 在 Android 上 PROCESS-NAME 匹配应用包名；
+    // APP 对话流量走 www.google.com 等通用域名，域名规则拦不到，只能按包名识别。
+    // 桌面端无此包名进程，规则不命中、无副作用）
+    // Gemini APP
+    "PROCESS-NAME,com.google.android.apps.bard,谷歌AI",
+    // NotebookLM APP
+    "PROCESS-NAME,com.google.android.apps.labs.language.tailwind,谷歌AI",
+
+    // Gemini 网页 / 主域名
+    "DOMAIN-SUFFIX,gemini.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,gemini.google,谷歌AI",
+    "DOMAIN-SUFFIX,gemini.gstatic.com,谷歌AI",
+
+    // Gemini APP 专属后端（这些是 Gemini 独有、非通用 AI 的 googleapis.com 子域，
+    // 必须赶在 RULE-SET,AI 的宽后缀 .googleapis.com 之前精确命中，否则会被「人工智能」组抢走）
+    "DOMAIN-SUFFIX,aida.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,aicode.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,geller-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,robinfrontend-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,cloudaicompanion.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,cloudcode-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,notebooklm-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,notebooklm.googleapis.com,谷歌AI",
+
+    // Gemini API 开发者门户 / Jules（AI 编码代理）
+    "DOMAIN,ai.google.dev,谷歌AI",
+    "DOMAIN-SUFFIX,jules.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,jules.google,谷歌AI",
+
+    // Gemini Notebook 当前正式入口
+    "DOMAIN-SUFFIX,notebook.google.com,谷歌AI",
+
+    // NotebookLM
+    "DOMAIN-SUFFIX,notebooklm.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,notebooklm.google,谷歌AI",
+
+    // NotebookLM / Gemini Notebook 企业版
+    "DOMAIN-SUFFIX,notebooklm.cloud.google.com,谷歌AI",
+
+    // Google AI Studio / Bard / MakerSuite / DeepMind / Labs
+    "DOMAIN-SUFFIX,aistudio.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,bard.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,deepmind.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,deepmind.google,谷歌AI",
+    "DOMAIN-SUFFIX,deepmind.com,谷歌AI",
+    "DOMAIN-SUFFIX,generativeai.google,谷歌AI",
+    "DOMAIN-SUFFIX,makersuite.google.com,谷歌AI",
+    "DOMAIN,alkalimakersuite-pa.clients6.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,labs.google.com,谷歌AI",
+
+    // Gemini API
+    "DOMAIN-SUFFIX,generativelanguage.googleapis.com,谷歌AI",
+    "DOMAIN,proactivebackend-pa.googleapis.com,谷歌AI",
+
+    // 补齐 AI 列表中的真实 AI 接口（上游 AI 列表收录但上方窄规则未覆盖的）
+    "DOMAIN-SUFFIX,aisandbox-pa.googleapis.com,谷歌AI",
+    "DOMAIN,alkalicore-pa.clients6.google.com,谷歌AI",
+    "DOMAIN,webchannel-alkalimakersuite-pa.clients6.google.com,谷歌AI",
+    "DOMAIN-SUFFIX,antigravity-pa.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,antigravity.googleapis.com,谷歌AI",
+    "DOMAIN-SUFFIX,daily-cloudcode-pa.googleapis.com,谷歌AI",
+    // 维护提示：未来新增的 *.googleapis.com AI 后端会被下方宽后缀规则接走，
+    // 上线新 Google AI 服务时需在此手动补充对应域名。
+    "DOMAIN-SUFFIX,aiplatform.googleapis.com,谷歌AI",
+
+    // 上游 AI 列表含宽后缀 +.googleapis.com / +.googleusercontent.com / +.apis.google.com，
+    // 会把 Gmail 页面翻译、邮件后端 API、附件头像等非 AI 流量抢进「谷歌AI」，
+    // 与走「谷歌服务」的主站出口不一致导致卡顿。先于 AI 列表整体交还「谷歌服务」。
+    "DOMAIN-SUFFIX,googleapis.com,谷歌服务",
+    "DOMAIN-SUFFIX,googleusercontent.com,谷歌服务",
+    "DOMAIN,apis.google.com,谷歌服务",
+
+    // 其他 AI
+    "RULE-SET,AI,人工智能",
+
+    // 测速
+    "DOMAIN-KEYWORD,speedtest,网络测试",
+    "RULE-SET,Speedtest,网络测试",
+
+    // 社交
+    "RULE-SET,Twitter,推特社交",
+    "RULE-SET,Telegram,电报消息",
+    "RULE-SET,SocialMedia,社交平台",
+
+    // 新闻
+    "RULE-SET,NewsMedia,新闻媒体",
+
+    // 游戏
+    "DOMAIN-SUFFIX,steamserver.net,直接连接",
+    "RULE-SET,Games,游戏平台",
+
+    // 加密货币
+    "RULE-SET,Crypto,货币平台",
+
+    // Emby
+    "RULE-SET,Emby,Emby服",
+
+    // Netflix
+    "RULE-SET,Netflix,奈飞视频",
+
+    // YouTube
+    "RULE-SET,YouTube,油管视频",
+
+    // Streaming
+    "RULE-SET,Streaming,国际媒体",
+
+    // Apple
+    "RULE-SET,Apple,苹果服务",
+
+    // Google
+    "RULE-SET,Google,谷歌服务",
+
+    // GitHub
+    "RULE-SET,github,Github",
+
+    // Microsoft
+    "RULE-SET,Microsoft,微软服务",
+
+    // 所有 .cn 域名强制直连。
+    // 原因：666OS 的 Proxy 列表混入了少量 .cn 域名（如 +.amd.com.cn、+.airbnb.cn），
+    // 而本脚本 RULE-SET,Proxy 在 RULE-SET,China 之前，导致 developer.amd.com.cn
+    // 这类国内站被送进代理出口，部分节点/站点风控下直接打不开。
+    "DOMAIN-SUFFIX,cn,国内流量",
+
+    // 其他代理
+    "RULE-SET,Proxy,国外流量",
+
+    // IP 纯净度 / 风险检测站：必须经代理出口访问才有意义（直连只会显示真实 IP）。
+    // browserleaks.com / myip.la 被上游 China 列表误收，需抢在 China 之前接管。
+    "DOMAIN-SUFFIX,ping0.cc,国外流量",
+    "DOMAIN-SUFFIX,ipcheck.ing,国外流量",
+    "DOMAIN-SUFFIX,ip.sb,国外流量",
+    "DOMAIN-SUFFIX,ipinfo.io,国外流量",
+    "DOMAIN-SUFFIX,ip-api.com,国外流量",
+    "DOMAIN-SUFFIX,ipify.org,国外流量",
+    "DOMAIN-SUFFIX,ipleak.net,国外流量",
+    "DOMAIN-SUFFIX,browserleaks.com,国外流量",
+    "DOMAIN-SUFFIX,whoer.net,国外流量",
+    "DOMAIN-SUFFIX,scamalytics.com,国外流量",
+    "DOMAIN-SUFFIX,ipqualityscore.com,国外流量",
+    "DOMAIN-SUFFIX,myip.la,国外流量",
+
+    // 中国大陆
+    "RULE-SET,China,国内流量",
+
+    // ==================== IP 规则 ====================
+
+    "RULE-SET,AdvertisingIP,REJECT,no-resolve",
+
+    "RULE-SET,PrivateIP,直接连接,no-resolve",
+
+    "RULE-SET,XPTVIP,直接连接,no-resolve",
+
+    // AI IP
+    "RULE-SET,AIIP,人工智能,no-resolve",
+
+    "RULE-SET,TelegramIP,电报消息,no-resolve",
+
+    "RULE-SET,SocialMediaIP,社交平台,no-resolve",
+
+    "RULE-SET,EmbyIP,Emby服,no-resolve",
+
+    "RULE-SET,NetflixIP,奈飞视频,no-resolve",
+
+    "RULE-SET,StreamingIP,国际媒体,no-resolve",
+
+    "RULE-SET,GoogleIP,谷歌服务,no-resolve",
+
+    "RULE-SET,ProxyIP,国外流量,no-resolve",
+
+    "RULE-SET,ChinaIP,国内流量,no-resolve",
+
+    // 兜底
+    "MATCH,兜底流量"
+  ];
+
+  // ==================== Rule Providers ====================
+
+  function domainMRS(url) {
+    return {
+      type: "http",
+      behavior: "domain",
+      format: "mrs",
+      interval: 86400,
+      proxy: "故障转移",
+      url: url
+    };
+  }
+
+  function ipMRS(url) {
+    return {
+      type: "http",
+      behavior: "ipcidr",
+      format: "mrs",
+      interval: 86400,
+      proxy: "故障转移",
+      url: url
+    };
+  }
+
+  config["rule-providers"] = {
+    // ---------- 域名 ----------
+
+    Tracking: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Tracking.mrs"
+    ),
+
+    Advertising: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Advertising.mrs"
+    ),
+
+    Direct: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Direct.mrs"
+    ),
+
+    LocationDKS: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/LocationDKS.mrs"
+    ),
+
+    Private: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Private.mrs"
+    ),
+
+    Download: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Download.mrs"
+    ),
+
+    Speedtest: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Speedtest.mrs"
+    ),
+
+    AI: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/AI.mrs"
+    ),
+
+    Telegram: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Telegram.mrs"
+    ),
+
+    Twitter: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Twitter.mrs"
+    ),
+
+    SocialMedia: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/SocialMedia.mrs"
+    ),
+
+    NewsMedia: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/NewsMedia.mrs"
+    ),
+
+    Games: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Games.mrs"
+    ),
+
+    Crypto: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Crypto.mrs"
+    ),
+
+    Netflix: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Netflix.mrs"
+    ),
+
+    YouTube: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/YouTube.mrs"
+    ),
+
+    XPTV: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/XPTV.mrs"
+    ),
+
+    Emby: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Emby.mrs"
+    ),
+
+    Streaming: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Streaming.mrs"
+    ),
+
+    AppleCN: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/AppleCN.mrs"
+    ),
+
+    Apple: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Apple.mrs"
+    ),
+
+    Google: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Google.mrs"
+    ),
+
+    Microsoft: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Microsoft.mrs"
+    ),
+
+    Proxy: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/Proxy.mrs"
+    ),
+
+    China: domainMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/domain/China.mrs"
+    ),
+
+    // ---------- IP ----------
+
+    AdvertisingIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/Advertising.mrs"
+    ),
+
+    PrivateIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/Private.mrs"
+    ),
+
+    AIIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/AI.mrs"
+    ),
+
+    TelegramIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/Telegram.mrs"
+    ),
+
+    SocialMediaIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/SocialMedia.mrs"
+    ),
+
+    XPTVIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/XPTV.mrs"
+    ),
+
+    EmbyIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/Emby.mrs"
+    ),
+
+    NetflixIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/Netflix.mrs"
+    ),
+
+    StreamingIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/Streaming.mrs"
+    ),
+
+    GoogleIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/Google.mrs"
+    ),
+
+    ProxyIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/Proxy.mrs"
+    ),
+
+    ChinaIP: ipMRS(
+      "https://github.com/666OS/rules/raw/release/mihomo/ip/China.mrs"
+    ),
+
+    // ---------- WiFi Calling ----------
+
+    ukwifi: {
+      type: "http",
+
+      behavior: "classical",
+
+      format: "text",
+
+      interval: 86400,
+
+      proxy: "故障转移",
+
+      url:
+        "https://raw.githubusercontent.com/HenryChiao/wificalling/refs/heads/main/qiao/wificalling.list"
+    },
+
+    // ---------- 广告 ----------
+
+    AWAvenueAds: domainMRS(
+      "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.mrs"
+    ),
+
+    // ---------- GitHub ----------
+
+    github: {
+      type: "http",
+
+      behavior: "classical",
+
+      format: "yaml",
+
+      interval: 3600,
+
+      proxy: "DIRECT",
+
+      url:
+        "https://rule.kelee.one/Clash/GitHub.yaml"
+    }
+  };
+
+  return config;
+}
