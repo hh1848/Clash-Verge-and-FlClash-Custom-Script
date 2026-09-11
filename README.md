@@ -1,11 +1,11 @@
 <div align="center">
 
-# Clash Verge Rev & FlClash Custom Script
+# Clash Verge Rev & Bettbox Custom Script
 
 **一套 Mihomo 覆写脚本，让你换机场时不用重改配置。**
 
 [![Clash Verge Rev](https://img.shields.io/badge/Clash%20Verge%20Rev-支持-2f81f7)](./Clash-Verge-Rev-mihomoScript.js)
-[![FlClash](https://img.shields.io/badge/FlClash%20(Android)-支持-3ddc84)](./FlClash-mihomoScript.js)
+[![Bettbox](https://img.shields.io/badge/Bettbox%20(Android)-支持-3ddc84)](./Bettbox-mihomoScript.js)
 [![Mihomo](https://img.shields.io/badge/内核-Mihomo-orange)](https://github.com/MetaCubeX/mihomo)
 
 </div>
@@ -15,46 +15,57 @@
 
 ---
 
-## 这是什么
+## 项目简介
 
-大多数机场订阅自带的代理组和规则都各不相同、质量参差。这套脚本的做法是：
+大多数机场订阅自带的代理组和规则各不相同、质量参差。这套脚本的做法是：
 
-> **保留你当前机场的 `proxies` / `proxy-providers` 节点，把代理组、分流规则、Rule Providers、DNS、Sniffer、Hosts 全部重建为一套统一结构。**
+> **保留你当前机场的 `proxies` / `proxy-providers` 节点，把代理组、分流规则、Rule Providers、DNS 全部重建为一套统一结构。**
 
-所以你换任何机场，看到的都是同一套代理组和分流逻辑，节点还是那个机场自己的节点。
+所以你换任何机场，看到的都是同一套代理组和分流逻辑，节点还是那个机场自己的节点。脚本里**不需要填任何机场 URL**，也不含任何节点信息。
 
-脚本里**不需要填任何机场 URL**，也不含任何节点信息。
+新版脚本延续"统一骨架"思路，但对结构做了大幅精简：
+
+- **26 个策略组**（6 基础 + 3 AI + 8 国际服务 + 9 地区），去掉了故障转移、负载均衡等重型组
+- **26 条分流规则** + **20 个 Rule Providers**（全部来自 [MetaCubeX/meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat) 的 `.mrs` 格式，每日自动更新）
+- ChatGPT / Claude / Gemini & NotebookLM 三大 AI 服务独立分流，NotebookLM 精确域名优先于通用 Google
+- Bettbox 版支持 **v1.18.8+ 可视化覆写开关**：在 App 界面上直接启停各服务分流，关闭后流量自动回落"国外流量"
 
 ---
 
-## 快速开始
+## 适用环境
 
-<details open>
-<summary><b>Clash Verge Rev（桌面版）</b></summary>
+| 客户端 | 平台 | 脚本 | 说明 |
+| --- | --- | --- | --- |
+| **Clash Verge Rev** | Windows / macOS / Linux | [`Clash-Verge-Rev-mihomoScript.js`](./Clash-Verge-Rev-mihomoScript.js) | 桌面版，含 TUN 参数补充 |
+| **Bettbox**（v1.18.8+） | Android | [`Bettbox-mihomoScript.js`](./Bettbox-mihomoScript.js) | 安卓版，支持可视化覆写开关 |
+
+两版脚本的分流逻辑、代理组结构、DNS 完全一致，差异只在平台适配项（详见[两版脚本差异](#两版脚本差异)）。
+
+必须使用 **Mihomo 内核**的客户端。旧版 Clash Premium 或不支持 `include-all`、Rule Providers 等 Mihomo 特性的客户端不适用。
+
+---
+
+## 安装与配置
+
+### Clash Verge Rev（桌面版）
 
 1. 正常导入机场订阅
 2. `订阅` → **全局扩展脚本**（注意是 Script，不是「全局扩展覆写配置 / Merge」）
 3. 复制 [`Clash-Verge-Rev-mihomoScript.js`](./Clash-Verge-Rev-mihomoScript.js) 全文粘贴进去，保存
-4. 刷新订阅
+4. 刷新订阅，代理页出现 `全球手动` / `默认代理` / `漏网之鱼` 等代理组即生效
 
-</details>
+### Bettbox（Android）
 
-<details>
-<summary><b>FlClash（Android）</b></summary>
-
-1. 正常导入机场配置
-2. `配置` → `覆写` → **新建 JavaScript 覆写**，复制 [`FlClash-mihomoScript.js`](./FlClash-mihomoScript.js) 全文粘贴保存
-3. 回到机场配置，把这个覆写脚本关联到该配置上
-4. **重要**：打开 `覆写编辑器 → 常规 → 查找进程` 开关，否则 `PROCESS-NAME` 包名规则（Gemini / NotebookLM App 分流）不生效
-5. 如希望脚本的 DNS 完整生效，关闭 FlClash 自带的「覆写 DNS」
-
-</details>
+1. 正常导入机场订阅
+2. 在脚本覆写入口（`设置 → 高级设置 → 脚本`，或 `配置 → 订阅 → 覆写 → 脚本`，以 App 内实际界面为准）新建 JavaScript 覆写
+3. 复制 [`Bettbox-mihomoScript.js`](./Bettbox-mihomoScript.js) 全文粘贴保存，并关联到当前订阅
+4. 刷新订阅。Bettbox v1.18.8+ 会在覆写页展示脚本声明的可视化开关（ChatGPT、Claude、地区分组等 12 项）
 
 ### Raw 地址
 
 ```text
-https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/main/Clash-Verge-Rev-mihomoScript.js
-https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/main/FlClash-mihomoScript.js
+https://raw.githubusercontent.com/hh1848/Clash-Verge-and-Bettbox-Custom-Script/main/Clash-Verge-Rev-mihomoScript.js
+https://raw.githubusercontent.com/hh1848/Clash-Verge-and-Bettbox-Custom-Script/main/Bettbox-mihomoScript.js
 ```
 
 > Raw 地址用于查看或同步脚本源码，**不是订阅地址**，不要填进客户端的订阅框。
@@ -73,12 +84,9 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
         ┌────────────────┼────────────────┐
         ▼                ▼                ▼
   proxy-groups         rules         rule-providers
-   (59 个)      (98 / 106 条)          (40 个)
+   (26 个)           (26 条)           (20 个)
         │
-        ├── dns（Fake-IP + 国内外分流）
-        ├── sniffer（HTTP / TLS）
-        ├── hosts（合并追加）
-        └── tun / profile / 基础参数
+        └── dns（Fake-IP + 国内外分流）
                          │
                          ▼
                   最终 Mihomo 配置
@@ -94,398 +102,231 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 
 切到哪个机场，用的就是那个机场自己的节点。
 
----
+### 配置规模
 
-## 配置规模
-
-| 项目 | Clash Verge Rev | FlClash (Android) |
+| 项目 | Clash Verge Rev | Bettbox (Android) |
 | --- | --- | --- |
-| 代理组 | **59** | **59** |
-| 分流规则 | **98** | **106**（多 8 条国内应用直连） |
-| Rule Providers | **40** | **40** |
-
-两版生成的**代理组数量（59）与 Rule Providers（40）一致**；规则条数相差 8 条 —— FlClash 版多出 8 条置顶的国内应用直连（7 条 `PROCESS-NAME` 精确包名 + 1 条 `PROCESS-NAME-REGEX` 厂商前缀）。
-
-另外需要说明：**两版并非「只差客户端适配项」**。DNS 形态（域名 DoH vs IP 直连 DoH）、`cache-algorithm`、`nameserver-policy` 条目、`fake-ip-filter` 条目数都存在实质差异，完整清单见[两版差异](#两版脚本差异)。
-
----
-
-## 效果截图
-
-### Clash Verge Rev（桌面端）
-
-<div align="center">
-  <img src="./images/clash-verge-proxy-1.png" width="49%" alt="Clash Verge Rev 代理组（上半）">
-  <img src="./images/clash-verge-proxy-2.png" width="49%" alt="Clash Verge Rev 代理组（下半）">
-</div>
-
-### FlClash（Android）
-
-<div align="center">
-  <img src="./images/flclash-proxy-1.jpg" width="26%" alt="FlClash 策略组（上半）">
-  <img src="./images/flclash-proxy-2.jpg" width="26%" alt="FlClash 策略组（下半）">
-</div>
-
-> 两组截图均为同一份列表的上下两屏，横向拼接即为完整的代理组清单。点击图片可查看原图。
+| 代理组 | **26** | **26** |
+| 分流规则 | **26** | **26** |
+| Rule Providers | **20** | **20** |
 
 ---
 
 ## 代理组架构
 
-### 核心组（8 个）
+### 基础组（6 个）
 
 | 代理组 | 类型 | 用途 |
 | --- | --- | --- |
-| `全球手动` | `select` | 手动挑选具体节点，始终排第一 |
-| `默认代理` | `select` | 默认代理入口 |
-| `故障转移` | `fallback` | 地区之间自动故障切换 |
-| `国外流量` | `select` | 通用国外流量 |
-| `国内流量` | `select` | 国内流量 |
-| `兜底流量` | `select` | 最终 `MATCH` 落点 |
-| `直接连接` | `select` | 仅含 `DIRECT` |
-| `网络测试` | `select` | Speedtest 等测速服务 |
+| `全球手动` | `select` | 手动挑选具体节点，始终排第一；已过滤机场伪节点并按地区排序 |
+| `默认代理` | `select` | 默认代理入口，可选 `自动选择` / `全球手动` / 各地区组 / `DIRECT` |
+| `自动选择` | `url-test` | 全部节点自动测速选最优，间隔 300（Verge）/ 600（Bettbox）秒，容差 80ms |
+| `国内直连` | `select` | 默认 `DIRECT`；手动切到 `默认代理` 可让国内流量临时走代理 |
+| `国外流量` | `select` | 通用国外流量出口，也是各服务组开关关闭后的回落目标 |
+| `漏网之鱼` | `select` | 最终 `MATCH` 落点，默认走 `国外流量` |
 
-### 服务分流组（18 个）
+### 服务分流组（11 个）
 
-| 代理组 | 用途 | 默认首选 |
-| --- | --- | --- |
-| `人工智能` | ChatGPT / Claude / Gemini 等 | `美国策略` |
-| `谷歌AI` | Google Gemini / NotebookLM / AI Studio | `美国策略` |
-| `货币平台` | Crypto / 数字资产 | `狮城策略` |
-| `游戏平台` | 游戏相关流量 | — |
-| `Github` | GitHub | — |
-| `微软服务` | Microsoft | — |
-| `谷歌服务` | Google | — |
-| `苹果服务` | Apple | — |
-| `电报消息` | Telegram | — |
-| `推特社交` | Twitter / X | — |
-| `社交平台` | 其他国际社交平台 | — |
-| `Emby服` | Emby | — |
-| `油管视频` | YouTube | — |
-| `奈飞视频` | Netflix | — |
-| `国际媒体` | 国际流媒体 | — |
-| `新闻媒体` | 国际新闻媒体 | — |
-| `抖快书定位` | 抖音 / 快手 / 小红书定位 | — |
-| `UKwifi` | WiFi Calling | — |
+全部为 `select` 类型，可在 `国外流量` / `默认代理` / `自动选择` / `全球手动` / 各地区组 / `DIRECT` 之间自由切换：
 
-除 `UKwifi`（`DIRECT` / `欧盟策略`）外，其余服务组均可在默认代理、故障转移、各地区策略、全球手动、直接连接之间自由切换。
+| 代理组 | 用途 |
+| --- | --- |
+| `ChatGPT` | OpenAI |
+| `Claude` | Anthropic |
+| `Gemini / NotebookLM` | Gemini、AI Studio、NotebookLM、AI 开发接口 |
+| `Google` | Google 通用服务 |
+| `GitHub` | GitHub |
+| `Microsoft` | Microsoft |
+| `Apple` | Apple 国际服务（中国区业务走直连，见分流规则） |
+| `Telegram` | Telegram |
+| `X` | Twitter / X |
+| `YouTube` | YouTube |
+| `Netflix` | Netflix |
 
-### 地区策略组（9 + 24 个）
+### 地区组（9 个）
 
-脚本识别 **8 个地区**，每个地区生成 4 个组：
+脚本按关键词识别 **8 个地区**，每组是一个自动测速的 `url-test`；识别不到的节点统一进入 **`其他地区`**（排除式过滤，收留其余全部节点）：
 
-```text
-香港策略  (select)
-├── 香港自动        url-test
-├── 香港均衡-散列    load-balance / consistent-hashing
-└── 香港均衡-轮询    load-balance / round-robin
-```
+`🇭🇰 香港` · `🇲🇴 澳门` · `🇹🇼 台湾` · `🇰🇷 韩国` · `🇸🇬 新加坡` · `🇯🇵 日本` · `🇺🇸 美国` · `🇪🇺 欧洲` · `其他地区`
 
-| 地区 | 策略组 | 自动测速 | 均衡-散列 | 均衡-轮询 |
-| --- | --- | --- | --- | --- |
-| 香港 | `香港策略` | `香港自动` | `香港均衡-散列` | `香港均衡-轮询` |
-| 澳门 | `澳门策略` | `澳门自动` | `澳门均衡-散列` | `澳门均衡-轮询` |
-| 台湾 | `台湾策略` | `台湾自动` | `台湾均衡-散列` | `台湾均衡-轮询` |
-| 新加坡 | `狮城策略` | `狮城自动` | `狮城均衡-散列` | `狮城均衡-轮询` |
-| 日本 | `日本策略` | `日本自动` | `日本均衡-散列` | `日本均衡-轮询` |
-| 韩国 | `韩国策略` | `韩国自动` | `韩国均衡-散列` | `韩国均衡-轮询` |
-| 美国 | `美国策略` | `美国自动` | `美国均衡-散列` | `美国均衡-轮询` |
-| 欧盟 | `欧盟策略` | `欧盟自动` | `欧盟均衡-散列` | `欧盟均衡-轮询` |
+> Bettbox 版可在覆写开关里关闭 **`地区分组`**：9 个地区组全部移除，其他策略组中对地区组的引用一并清理，不影响其余分流。
 
-识别不到的节点统一进入 **`冷门自选`**。
+### Bettbox 可视化覆写开关
 
-- **自动测速**：`url-test`，探测 `https://www.google.com/generate_204`，`interval: 300`，`tolerance: 50`，`lazy: true`，`hidden: true`
-- **均衡-散列**：`consistent-hashing`，同一目标尽量固定在同一节点，适合登录态敏感的服务
-- **均衡-轮询**：`round-robin`，在同地区多节点间轮换
+Bettbox 版脚本顶部声明了两组客户端可见的全局变量：
+
+- `ruleOptionsEnable` —— 12 个开关（11 个服务组 + `地区分组`），默认全部启用
+- `serviceConfigs` —— 各开关在 App 界面上显示的图标
+
+联动逻辑：
+
+| 操作 | 结果 |
+| --- | --- |
+| 关闭某个服务开关（如 `Netflix: false`） | 对应策略组从配置中移除，原指向它的分流规则自动回落到 `国外流量` |
+| 关闭 `地区分组` | 9 个地区组全部移除，`默认代理` / `国外流量` / 各服务组中的地区选项一并清理 |
+| 全部保持默认 | 行为与 Clash Verge Rev 版完全一致 |
 
 ---
 
-## 节点识别
+## 节点识别与排序
 
-节点名称通过中文名、emoji 旗帜、英文缩写和机场三字码识别。
+### 地区识别关键词
+
+节点名称通过中文名、emoji 旗帜、英文全称和缩写识别：
 
 | 地区 | 识别关键词 |
 | --- | --- |
-| 香港 | 港 · 🇭🇰 · `HK` · Hong · HKG |
-| 澳门 | 澳门 · 澳門 · 濠江 · 🇲🇴 · `MO` · Macau · Macao · MFM · Taipa · 氹仔 · 路氹 · Coloane · Cotai · MOG |
-| 台湾 | 台 · 🇹🇼 · `TW` · Taiwan · TPE · TSA · KHH |
-| 新加坡 | 坡 · 狮城 · 獅城 · 🇸🇬 · `SG` · Sing · SIN · XSP |
-| 日本 | 日 · 🇯🇵 · 樱花 · 🌸 · 东京 · 大阪 · `JP` · Japan · NRT · HND · KIX · CTS · FUK |
-| 韩国 | 韩 · 韓 · 首尔 · 首爾 · 🇰🇷 · `KR` · `KOR` · Korea |
-| 美国 | 美 · 🇺🇸 · `US` · `USA` · JFK · SJC · LAX · ORD · ATL · DFW · SFO · MIA · SEA · IAD · 洛杉矶 · 纽约 · 旧金山 · 西雅图 · 芝加哥 · 达拉斯 · 迈阿密 · 亚特兰大 · 波士顿 · 凤凰城 · 圣何塞 · 华盛顿 |
-| 欧盟 | 法 · 德 · 意 · 西 · 荷 · 瑞 · 波 · 英 等成员国 + 🇦🇹 🇧🇪 🇨🇿 🇩🇰 🇫🇮 🇫🇷 🇩🇪 🇮🇪 🇮🇹 🇱🇹 🇱🇺 🇳🇱 🇵🇱 🇸🇪 🇬🇧 · CDG · FRA · AMS · MAD · BCN · FCO · MUC · BRU · `DE` · `FR` · `NL` · Germany · France · Paris · Berlin · Amsterdam · Zurich · Vienna · Madrid · Milan · Stockholm · Dublin · Warsaw · Lisbon · Prague · Copenhagen · Oslo · Helsinki |
+| 香港 | 🇭🇰 · 香港 · `Hong Kong` · `HK` / `HKG` |
+| 澳门 | 🇲🇴 · 澳门 / 澳門 · `Macao` / `Macau` · `MO` |
+| 台湾 | 🇹🇼 · 台湾 / 台灣 · `Taiwan` · `Taipei` · `TW` / `TWN` |
+| 韩国 | 🇰🇷 · 韩国 / 韓國 · `Korea` · `Seoul` · `KR` / `KOR` |
+| 新加坡 | 🇸🇬 · 新加坡 / 狮城 / 獅城 · `Singapore` · `SG` / `SGP` |
+| 日本 | 🇯🇵 · 日本 · 东京 / 東京 · 大阪 · `Japan` · `Tokyo` · `Osaka` · `JP` / `JPN` |
+| 美国 | 🇺🇸 · 美国 / 美國 · `United States` · `America` · 洛杉矶 / 圣何塞 / 西雅图 / 纽约 / 凤凰城 · `Los Angeles` · `San Jose` · `Seattle` · `New York` · `Phoenix` · `PHX` · `US` / `USA` |
+| 欧洲 | 🇪🇺 · 欧洲 / 歐洲 · 英 / 法 / 德 / 荷 / 西 / 意 / 瑞 / 芬 / 挪 / 波 / 爱尔兰 · `Europe` · `London` · `Paris` · `Frankfurt` · `Amsterdam` · `Madrid` · `Milan` · `Zurich` · `Stockholm` · `Helsinki` · `Oslo` · `Warsaw` · `Dublin` · `EU` · `UK` · `GB` · `DE` · `FR` · `NL` |
 
-以下三个地区**没有独立的策略组**（节点归入 `欧盟策略`），仅用于在 `全球手动` 中排到更靠前的位置：
+### 全球手动排序
 
-| 地区 | 识别关键词 | 排序位置 |
-| --- | --- | --- |
-| 英国 | 英 · 🇬🇧 · `UK` · `GB` · London · LHR · LGW | 第 8 位 |
-| 德国 | 德 · 🇩🇪 · `DE` · Germany · Frankfurt · FRA · MUC | 第 9 位 |
-| 法国 | 法 · 🇫🇷 · `FR` · France · Paris · CDG | 第 10 位 |
-
-> 地区过滤器内置 `5x` / `Plus` / `Australia` / `Africa` / `尼日利亚` 等负向词，用于排除机场的「××节点 Plus」这类干扰命名。
->
-> 另有一组负向预查：`南美` / `中美洲` / `拉美` / `拉丁` / `阿根廷` / `巴西` / `圣保罗` / `哥伦比亚` / `委内瑞拉` / `巴拉圭` / `俄罗斯` / `达拉斯` / `圣何塞` / `波士顿` / `美娜多` / `北美`。这些地名含「美」「拉」「罗」「塞」「波」等与地区关键词冲突的汉字（如 波士顿 的「波」= 波兰、圣何塞 的「塞」= 塞尔维亚），不排除就会被误归入 `美国策略` 或 `欧盟策略`。**新增美国城市名时务必对照欧盟单字正向词（奥 比 保 塞 捷 丹 芬 法 德 希 匈 意 拉 立 卢 荷 波 葡 罗 瑞 英）排查碰撞。**
->
-> `冷门自选` 的过滤器用 `(?<!南)(?<!中)(?<!丁)(?<!拉)美`、`拉(?=脱)`、`罗(?=马)`、`比(?=利)`、`保(?=加)`、`瑞(?=士|典)` 这类断言区分「南美 vs 美国」「达拉斯 vs 拉脱维亚」，是刻意设计，不是笔误。
->
-> Verge 版另保留 `排除1` / `排除2` 两个**占位符**（从不匹配任何真实节点名，留给你自行填要排除的关键词）；FlClash 版已在 2026-09-09 重构时移除。
-
----
-
-## 全球手动
-
-`全球手动` 是第一个代理组，用于直接挑节点。脚本会先**过滤机场公告类伪节点**，再按地区重排。
-
-**过滤关键词**（命中即剔除）：
+`全球手动` 组会先**剔除机场公告类伪节点**（命中即排除）：
 
 ```text
-群 · 邀请 · 返利 · 循环 · 官网 · 客服 · 网站 · 网址 · 获取 · 订阅 · 流量 · 到期
-机场 · 下次 · 版本 · 官址 · 备用 · 过期 · 已用 · 联系 · 邮箱 · 工单 · 贩卖 · 通知
-倒卖 · 防止 · 国内 · 地址 · 频道 · 无法 · 说明 · 使用 · 提示 · 访问 · 支持 · 教程
-关注 · 更新 · 作者 · 加入 · 超时 · 重启 · 维护 · 暂停 · 失效 · 公告
-USE · USED · TOTAL · EXPIRE · EMAIL · Panel · Channel · Author
+到期 · 过期 · 剩余 · 流量 · 套餐 · 官网 · 网址 · 订阅 · 重置
+Expire · Expired · Traffic · Remaining · Website
 ```
 
-**排序优先级**（同地区内保持机场原有顺序）：
+再按固定地区顺序重排：**香港 → 澳门 → 台湾 → 韩国 → 新加坡 → 日本 → 美国 → 欧洲 → 其他**，同地区内按数字自然排序（`节点1`、`节点2`…… `节点10` 不会乱序）。
 
-| 顺序 | 地区 | 优先级值 |
-| --- | --- | --- |
-| 1 | 香港 | 10 |
-| 2 | 澳门 | 15 |
-| 3 | 台湾 | 20 |
-| 4 | 新加坡 | 30 |
-| 5 | 日本 | 40 |
-| 6 | 韩国 | 50 |
-| 7 | 美国 | 60 |
-| 8 | 英国 | 70 |
-| 9 | 德国 | 80 |
-| 10 | 法国 | 90 |
-| 末 | 其他 | 1000 |
-
-> 排序只作用于 `config.proxies` 里的内联节点。`proxy-providers` 会通过 `use` 接入 `全球手动`，但其内部节点顺序由 Provider 自身和 Mihomo 决定，脚本不重排。
+> 排序只作用于 `config.proxies` 里的内联节点。若机场使用 `proxy-providers`，Bettbox 版会让 `全球手动` 通过 `include-all` 由 Mihomo 运行时动态纳入全部节点（含 provider 节点），避免订阅更新后节点丢失，此模式下节点顺序由内核决定。
 
 ---
 
-## 分流规则
+## 分流规则说明
 
-共 **98 条**（FlClash 版 106 条：多出 8 条置顶的国内应用直连），自上而下匹配：
+共 **26 条**，自上而下匹配，命中即停：
 
 | 顺序 | 规则 | 目标 | 条数 |
 | --- | --- | --- | --- |
-| 1 | `Tracking` / `AWAvenueAds` / `Advertising` | `REJECT` | 3 |
-| 2 | `ukwifi` | `UKwifi` | 1 |
-| 3 | `LocationDKS` | `抖快书定位` | 1 |
-| 4 | `Private` / `Direct` / `XPTV` / `Download` / `AppleCN` | `直接连接` | 5 |
-| 5 | `AND,((DST-PORT,443),(NETWORK,UDP))` — QUIC 拦截 | `REJECT` | 1 |
-| 6 | Gemini / NotebookLM（2 条 `PROCESS-NAME` 包名 + 36 条域名） | `谷歌AI` | 38 |
-| 7 | `googleapis.com` / `googleusercontent.com` / `apis.google.com` 交还 `谷歌服务`（防 AI 列表宽后缀劫持 Gmail 翻译） | `谷歌服务` | 3 |
-| 8 | `AI` | `人工智能` | 1 |
-| 9 | `DOMAIN-KEYWORD,speedtest` + `Speedtest` | `网络测试` | 2 |
-| 10 | `Twitter` / `Telegram` / `SocialMedia` / `NewsMedia` | 对应服务组 | 4 |
-| 11 | `DOMAIN-SUFFIX,steamserver.net` | `直接连接` | 1 |
-| 12 | `Games` / `Crypto` / `Emby` / `Netflix` / `YouTube` / `Streaming` / `Apple` / `Google` / `github` / `Microsoft` | 对应组 | 10 |
-| 13 | `DOMAIN-SUFFIX,cn` — 所有 .cn 域名强制直连 | `国内流量` | 1 |
-| 14 | `Proxy` | `国外流量` | 1 |
-| 15 | 12 条 IP 查询站域名（`ping0.cc` · `ipcheck.ing` · `ip.sb` · `ipinfo.io` · `ip-api.com` · `ipify.org` · `ipleak.net` · `browserleaks.com` · `whoer.net` · `scamalytics.com` · `ipqualityscore.com` · `myip.la`） | `国外流量` | 12 |
-| 16 | `China` | `国内流量` | 1 |
-| 17 | 12 条 IP CIDR 规则（`AdvertisingIP` · `PrivateIP` · `XPTVIP` · `AIIP` · `TelegramIP` · `SocialMediaIP` · `EmbyIP` · `NetflixIP` · `StreamingIP` · `GoogleIP` · `ProxyIP` · `ChinaIP`，均带 `no-resolve`） | 对应组 / `REJECT` | 12 |
-| 末 | `MATCH` | `兜底流量` | 1 |
-| — | **合计** | — | **98** |
+| 1 | `RULE-SET:private`（局域网域名） | `国内直连` | 1 |
+| 2 | NotebookLM / Gemini 精确域名：`notebooklm.google` · `notebooklm.google.com` · `aistudio.google.com` · `ai.google.dev` · `generativelanguage.googleapis.com` | `Gemini / NotebookLM` | 5 |
+| 3 | `RULE-SET:openai` | `ChatGPT` | 1 |
+| 4 | `RULE-SET:anthropic` | `Claude` | 1 |
+| 5 | `RULE-SET:google-gemini` | `Gemini / NotebookLM` | 1 |
+| 6 | `RULE-SET:apple@cn` — 中国区 Apple 业务 | `国内直连` | 1 |
+| 7 | `RULE-SET:cn` — 中国大陆域名 | `国内直连` | 1 |
+| 8 | `youtube` / `google` / `github` / `microsoft` / `apple` / `telegram` / `x` / `netflix` | 对应服务组 | 8 |
+| 9 | IP 规则集：`private` → `国内直连`；`google` / `telegram` / `twitter` / `netflix` → 对应服务组；`cn` → `国内直连`（全部带 `no-resolve`） | 对应组 | 6 |
+| 末 | `MATCH` | `漏网之鱼` | 1 |
+| — | **合计** | — | **26** |
 
-### 关于 QUIC / HTTP/3
+两个刻意设计：
 
-QUIC 拦截规则位于直连规则组（Private/Direct 等五组）**之后**，因此局域网与明确直连站点的 UDP 443 不受影响；其余流量 QUIC / HTTP/3 被禁用，连接回落到 TCP / HTTP/2。
+- **NotebookLM / Gemini 精确域名（第 2 组）排在通用 Google（第 8 组）之前**。否则 `google` 规则集会先把 Gemini 相关域名抢走，AI 服务无法独立分流。`generativelanguage.googleapis.com` 也因此不会被 `googleapis.com` 泛化规则带偏。
+- **中国区 Apple（`apple@cn`）在大陆域名（`cn`）与国际 Apple（`apple`）之前**，保证 App Store / iCloud 国内业务直连，其余 Apple 流量才进 `Apple` 组。
 
-绝大多数网站不受影响。如果某个应用强依赖 QUIC，自行删除这条规则即可：
+### Rule Providers
 
-```text
-AND,((DST-PORT,443),(NETWORK,UDP)),REJECT
-```
+20 个，全部为 `http` + `.mrs` 格式（Mihomo 二进制规则集，体积小、加载快），来源统一为 [MetaCubeX/meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat)，经 jsDelivr CDN 分发，更新间隔 `86400` 秒（每天一次），本地缓存到 `./ruleset/skull/`：
 
----
-
-## Rule Providers
-
-40 个，均为 `http` 类型。其中 **38 个为 `.mrs` 格式**（Mihomo 二进制规则集，体积小、加载快），其余 2 个为文本格式（`ukwifi` 用 `.list`、`github` 用 `.yaml`）。全部 40 个 Provider 的 `interval` 均为 `86400`（每天一次）。
-
-| 来源 | 数量 | 更新间隔 |
+| 类型 | 规则集 | 数量 |
 | --- | --- | --- |
-| [666OS/rules](https://github.com/666OS/rules) — domain | 25 | 86400 |
-| [666OS/rules](https://github.com/666OS/rules) — ipcidr | 12 | 86400 |
-| [HenryChiao/wificalling](https://github.com/HenryChiao/wificalling) | 1 | 86400 |
-| [AWAvenue Ads Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule) | 1 | 86400 |
-| [Kelee GitHub Rule](https://rule.kelee.one/Clash/GitHub.yaml) | 1 | 86400 |
+| 域名（`behavior: domain`） | `private` · `cn` · `openai` · `anthropic` · `google-gemini` · `google` · `github` · `microsoft` · `apple@cn` · `apple` · `telegram` · `x` · `youtube` · `netflix` | 14 |
+| IP 段（`behavior: ipcidr`） | `private` · `cn` · `google` · `telegram` · `twitter` · `netflix` | 6 |
 
-**域名规则（25）**：Tracking · Advertising · Direct · LocationDKS · Private · Download · Speedtest · AI · Telegram · Twitter · SocialMedia · NewsMedia · Games · Crypto · Netflix · YouTube · XPTV · Emby · Streaming · AppleCN · Apple · Google · Microsoft · Proxy · China
+> 脚本本身不含规则数据，首次加载需联网拉取。若 CDN 不可达，对应规则集加载失败，相关流量将落到后续规则或 `漏网之鱼`。
+> 机场订阅自带的 `rule-providers` 会被合并保留，但规则已全部重建为 `SKULL_*` 系列，不再引用机场自带规则集。
 
-**IP 规则（12）**：Advertising · Private · AI · Telegram · SocialMedia · XPTV · Emby · Netflix · Streaming · Google · Proxy · China
+### DNS
 
-> 脚本本身不含规则数据，首次加载需联网从上述地址拉取。若规则源不可达，对应 Rule Provider 会加载失败并回退为空规则。
-
----
-
-## DNS
-
-启用 Fake-IP，国内外分流解析。
+启用 Fake-IP + 按分流规则解析（`respect-rules`），两版脚本完全一致：
 
 ```yaml
 enable: true
-ipv6: false            # 与全局 ipv6: false 联动，刻意关闭
+ipv6: false              # 与脚本整体关闭 IPv6 的策略一致
 enhanced-mode: fake-ip
 fake-ip-range: 198.18.0.1/16
-cache-algorithm: arc   # 仅 Verge 版设置（需 mihomo 内核 ≥ 1.19.2）
-use-hosts: true
 respect-rules: true
 ```
 
 | 用途 | 服务器 |
 | --- | --- |
-| Bootstrap（`default-nameserver`） | `tls://223.5.5.5` · `tls://223.6.6.6` |
-| 国外（`nameserver`） | Cloudflare DoH · Google DoH |
-| 国内直连（`direct-nameserver`） | 阿里 DoH · `doh.pub` |
-| 代理节点解析（`proxy-server-nameserver`） | 阿里 DoH · `doh.pub` |
+| Bootstrap（`default-nameserver`） | `223.5.5.5` · `119.29.29.29` |
+| 国外 / 默认（`nameserver`） | Cloudflare DoH · Google DoH |
+| 国内域名（`nameserver-policy`，命中 `cn` / `private` 规则集时） | 阿里 DoH · 腾讯 `doh.pub` |
+| 代理节点域名（`proxy-server-nameserver`） | 阿里 DoH · 腾讯 `doh.pub` |
 
-**nameserver-policy**：
-
-| 匹配 | 使用 DNS |
-| --- | --- |
-| `+.cn` | 国内 DoH |
-| `Direct` + `Private` + `China` | 国内 DoH |
-| `Speedtest` `Twitter` `Telegram` `SocialMedia` `NewsMedia` `Games` `Crypto` `Emby` `Netflix` `YouTube` `Streaming` `Apple` `Google` `Microsoft` `Proxy` | Google / Cloudflare DoH |
-| `Advertising` + `AWAvenueAds` | `rcode://success`（仅 Verge 版，且当前不生效 —— 见下方说明） |
-| `time.*.com` `ntp.*.com` `+.pool.ntp.org` | 国内 DoH（仅 FlClash 版） |
-
-> [!NOTE]
-> **fake-ip 模式下，只有被 `fake-ip-filter` 放行的域名才会查 `nameserver-policy`。**
-> 未命中 `fake-ip-filter` 的域名由 fake-ip 中间件直接返回虚拟 IP，不会进入解析器的策略匹配 —— 策略判定函数 `matchPolicy` 位于 `ipExchange` 内部，在中间件链上比 fake-ip 更靠下。
->
-> 所以上表中**真正生效的只有 `+.cn` 与 `Direct/Private/China` 两行**（它们同时出现在 `fake-ip-filter` 里），以及 FlClash 版新增的 NTP / 时间域名那一行。
-> 其余行当前不会触发，保留是为了将来关闭 fake-ip 时可用 —— 直连域名的解析由 `direct-nameserver` 兜住，不必担心「直连域名走了国外 DNS」。
-
-**Fake-IP Filter**（命中这些规则的域名走真实解析，用于局域网、时间同步、推送、游戏主机 NAT 穿透等）：
-
-Verge 版 19 条：
+**Fake-IP Filter**：在机场原有配置基础上追加 7 条，命中的域名走真实解析（局域网发现、时间同步、QQ 登录等场景必需）：
 
 ```text
-+.lan · +.local
-time.*.com · time.*.gov · ntp.*.com · +.time.edu.cn · +.ntp.org.cn
-+.market.xiaomi.com · +.pub.3gppnetwork.org · +.push.apple.com · +.bing.com
-+.srv.nintendo.net · +.xboxlive.com · +.playstation.net · stun.*.*
-+.cn
-rule-set:Direct · rule-set:Private · rule-set:China
+*.lan · *.local · localhost.ptlogin2.qq.com
+time.*.com · time.*.gov · time.*.edu.cn · ntp.*.com
 ```
 
-FlClash 版 13 条，差异在于：新增 `+.pool.ntp.org`（Android 默认 NTP 源）；移除 `time.*.gov` / `+.time.edu.cn` / `+.ntp.org.cn`，以及三条游戏主机 NAT 穿透条目。
-
----
-
-## 其他配置
-
-### Sniffer（流量嗅探）
-
-| 协议 | 端口 | 备注 |
-| --- | --- | --- |
-| HTTP | `80`, `8080-8880` | `override-destination: true` |
-| TLS | `443`, `8443` | — |
-
-跳过域名：`Mijia Cloud`、`+.push.apple.com`
-
-> **QUIC 嗅探已移除（两版均无）**：本配置里的 `AND,((DST-PORT,443),(NETWORK,UDP)),REJECT` 已把未命中前置直连规则的 UDP 443 全部拒绝，嗅探到的 QUIC 域名无处可用，只白付一次握手解析开销。
-
-### Hosts
-
-在原 Hosts 基础上 `Object.assign()` 合并追加（不会清空机场原有 Hosts）：
-
-```text
-miwifi.com                                  → 192.168.31.2
-epdg.epc.mnc010.mcc234.pub.3gppnetwork.org  → 87.194.8.8 / 87.194.88.8 / 87.194.89.8 / 87.194.9.8
-services.googleapis.cn                      → services.googleapis.com
-cn.bing.com                                 → www4.bing.com
-```
-
-### Mihomo 基础参数
+### 常规参数
 
 ```yaml
 mode: rule
-ipv6: false                    # 刻意关闭，见上方 DNS 一节
-unified-delay: true
-tcp-concurrent: true
-global-client-fingerprint: chrome
-find-process-mode: strict      # strict = 仅在规则需要时查进程（性能友好），不是漏配
-keep-alive-interval: 15        # FlClash 版为 30（省电）
-keep-alive-idle: 600
-
+unified-delay: true        # 统一延迟估算，剔除握手差异
+tcp-concurrent: true       # TCP 并发连接
 profile:
-  store-selected: true         # 记住代理组选择
-  store-fake-ip: true          # 记住 Fake-IP 状态
+  store-selected: true     # 记住各代理组的手动选择
+  store-fake-ip: true      # 持久化 Fake-IP 映射
 ```
 
-> `ipv6: false` 在顶层与 `dns` 段各出现一次，是有意的三处联动（第三处是客户端应用层的 IPv6 开关）：`dns.ipv6: true` 会让 DNS 返回 AAAA，在无 IPv6 路由的 TUN 环境下拖慢连接，还有绕过 mihomo 造成泄露的风险。
-
-### TUN（仅 Clash Verge Rev）
-
-脚本**不强制开启 TUN**，只在客户端已有 `tun` 配置上合并补充：
-
-```yaml
-stack: mixed
-dns-hijack: [any:53, tcp://any:53]
-auto-route: true
-strict-route: true
-auto-detect-interface: true
-```
-
-是否启用 TUN 仍由客户端自己的开关决定。
-
-> 脚本**不设置** `auto-redirect`（仅 Linux 生效，Windows 下无意义）。
-> `strict-route: true` 用于堵住 Windows 多网卡下的 on-link DNS 逃逸 —— 校园网 / 企业网网卡与 DNS 服务器同网段时，DNS 查询会绕过 TUN 直连出去；开启后由防火墙规则强制全部流量进 TUN。
-> 代价：可能影响 WSL2 / VMware / VirtualBox 虚拟网络与局域网入站，相关功能异常时需自行评估是否回退本项。
+| 参数 | Clash Verge Rev | Bettbox (Android) |
+| --- | --- | --- |
+| TUN | 在客户端现有 `tun` 配置上合并补充：`stack: mixed` · `auto-route` · `strict-route` · `auto-detect-interface` · `dns-hijack: [any:53, tcp://any:53]`；**是否启用仍由客户端开关决定** | **完全不修改**。Android 的 TUN / VPN 生命周期由 Bettbox 自身接管，脚本越权覆写会与 App 冲突 |
+| `find-process-mode` | `strict`（仅规则需要时查进程） | `off`（安卓不做进程级分流，关闭省电） |
+| 顶层 `ipv6` | 不设置 | `false` |
 
 ---
 
 ## 两版脚本差异
 
-| 项目 | Clash Verge Rev | FlClash (Android) | 原因 |
+| 项目 | Clash Verge Rev | Bettbox (Android) | 原因 |
 | --- | --- | --- | --- |
-| TUN 覆盖 | 合并补充 `stack` / `dns-hijack` / `auto-route` / `strict-route` / `auto-detect-interface` | **不修改**（`tun` 为空对象） | Android 由 FlClash 的 VpnService 自行接管 |
-| `quic-go-disable-gso` | 启用 | **移除** | 桌面端规避 Windows 上 quic-go 的 GSO 历史稳定性问题；Android 上该开关无用 |
-| `keep-alive-interval` | `15` | `30` | 省电，减少移动网络频繁唤醒 |
-| `find-process-mode` | `strict` | `strict` | 两版一致；Android 上用于按应用包名分流（需在界面打开「查找进程」开关） |
-| `global-client-fingerprint` | `chrome` | `chrome` | 两版一致，统一 TLS ClientHello 指纹 |
-| `dns.nameserver` 形式 | 域名 DoH：`cloudflare-dns.com` / `dns.google` | **IP 直连 DoH**：`1.1.1.1` / `8.8.8.8` | 免 bootstrap 域名解析，免疫 bootstrap 污染 |
-| `dns.cache-algorithm` | `arc` | 未设置（内核默认） | 桌面端显式优化 DNS 缓存命中率 |
-| `dns.nameserver-policy` | 含 `Advertising → rcode://success` 与国外 DoH 条目 | 无 `Advertising` 条目，改为 NTP / 时间域名走国内 DoH | 见 [DNS](#dns) 一节的生效条件说明 |
-| `dns.fake-ip-filter` | 19 条 | 13 条 | FlClash 新增 `+.pool.ntp.org`；移除 gov / edu 时间域名与游戏主机 NAT 穿透条目 |
-| `sniffer` | HTTP + TLS | HTTP + TLS | 两版一致（QUIC 嗅探均已移除） |
-| 地区识别词表 | 见[节点识别](#节点识别) | 与 Verge 版对齐；另有 `狮城` / `獅城` / `首爾` 别名，且 `排除1` / `排除2` 占位符已移除 | — |
-| 国内应用直连 | **无** | 新增 8 条（7 条 `PROCESS-NAME` 精确包名 + 1 条 `PROCESS-NAME-REGEX` 厂商前缀，置顶） | 所有国内 App 整应用强制直连：73 个厂商包名前缀（腾讯/阿里/字节/百度/网易/美团/京东/拼多多/B站/微博/小红书/爱奇艺/优酷/360/OPPO/vivo/游戏厂商/运营商/银行等，含全部 `cn.*` 包名空间）+ 9 个特殊包名（支付宝/滴滴/12306/携程等），覆盖域名列表收不齐的小程序业务域名 / 游戏服务器 IP；**需在 FlClash 打开「查找进程」开关**，正则需 mihomo v1.18.8+ |
-| 代理组 / 规则 / Rule Providers | 59 / 98 / 40 | 59 / 106 / 40 | FlClash 多 8 条国内应用直连 |
+| 可视化覆写开关 | 无 | 12 个开关 + 图标（v1.18.8+） | Bettbox 原生支持，服务组可按需启停 |
+| `全球手动` 对 provider 订阅的处理 | 内联节点排序；无内联节点时 `include-all` 兜底 | 存在 `proxy-providers` 时**强制 `include-all`**，节点由内核动态纳入 | Android 订阅多为 provider 形态，静态排序会在订阅更新后丢失 provider 节点 |
+| 节点排序实现 | `localeCompare("zh-CN")` | 自实现数字自然比较 | Bettbox 的 JS 引擎（QuickJS）不保证 `Intl` 可用 |
+| `url-test` 测速间隔 | `300` 秒 | `600` 秒 | 移动端省电、减少唤醒 |
+| `find-process-mode` | `strict` | `off` | 桌面保留进程查询能力；安卓无进程分流需求 |
+| TUN | 合并补充参数（不改变启用状态） | 不碰 `tun` | 平台机制不同 |
+| 顶层 `ipv6` | 不设置 | `false` | 安卓网络环境更复杂，显式关闭 |
+| 代理组 / 规则 / Rule Providers | 26 / 26 / 20 | 26 / 26 / 20 | 分流结构完全一致 |
 
 ---
 
-## 兼容性
+## 使用示例
 
-必须使用 **Mihomo 内核**。旧版 Clash Premium 或不支持扩展字段的客户端不适用。
+**让 ChatGPT 固定走美国节点**
 
-脚本依赖的 Mihomo 特性：
+代理页 → `ChatGPT` 组 → 选 `🇺🇸 美国`。`美国` 组内是自动测速的美国节点，延迟最优自动切换。Claude、Gemini / NotebookLM 同理，互不影响。
 
-```text
-Rule Providers · MRS · include-all · filter · empty-fallback
-load-balance · consistent-hashing · round-robin
-Fake-IP · respect-rules · Sniffer · TUN
-```
+**临时让国内流量也走代理**
 
-### 空配置保护
+代理页 → `国内直连` 组 → 由 `DIRECT` 切到 `默认代理`。所有目标为 `国内直连` 的流量（大陆域名、中国区 Apple、局域网）都会改走代理；切回 `DIRECT` 即恢复。
 
-如果配置里既没有 `proxies` 也没有 `proxy-providers`，脚本**直接原样返回**，不做任何修改——避免订阅拉取失败时把配置清空。
+**关闭不需要的服务分流（仅 Bettbox）**
 
-### MihomoProPlus 名称保护
+覆写开关页把 `Netflix` 关掉 → `Netflix` 组消失，原本走 Netflix 规则集的流量自动改走 `国外流量`。想恢复就再打开。
 
-入口函数为 `main(config, profileName)`。当 Profile 名称包含 `MihomoProPlus` 时，脚本跳过处理，避免对模板本身二次覆写。
+**换机场**
+
+不用改脚本。Clash Verge Rev 换订阅后全局扩展脚本自动重新执行；Bettbox 把新订阅关联到同一个覆写脚本即可。
+
+**更新脚本**
+
+脚本更新后，重新复制对应文件内容覆盖客户端里的旧脚本，然后刷新一次订阅让配置重新生成。
 
 ---
 
-## 常见问题
+## 注意事项
+
+<details>
+<summary><b>配置里一个节点都没有会怎样？</b></summary>
+
+脚本有空配置保护：`proxies` 和 `proxy-providers` 都为空时**直接原样返回**，不做任何修改——避免订阅拉取失败时把配置清空。
+
+</details>
 
 <details>
 <summary><b>能同时用多个机场吗？</b></summary>
@@ -495,70 +336,32 @@ Fake-IP · respect-rules · Sniffer · TUN
 </details>
 
 <details>
-<summary><b>换机场要改脚本吗？</b></summary>
-
-**Clash Verge Rev**：不用。全局扩展脚本会在每次刷新订阅时自动重新执行。
-
-**FlClash**：不用改脚本，但要确认新机场的配置已关联这个覆写脚本。
-
-</details>
-
-<details>
 <summary><b>为什么有些节点没按地区排序？</b></summary>
 
-地区排序只作用于 `config.proxies` 的内联节点。机场若大量使用 `proxy-providers`，Provider 内部顺序由 Provider 和 Mihomo 决定。
+排序只作用于 `config.proxies` 的内联节点。机场若使用 `proxy-providers`，provider 节点由 Mihomo 运行时纳入，顺序由内核决定。
 
 </details>
 
 <details>
-<summary><b>为什么打不开某些 HTTP/3 网站？</b></summary>
+<summary><b>规则集拉取失败怎么办？</b></summary>
 
-脚本默认阻止 UDP 443 以禁用 QUIC。多数网站会自动回落 TCP，少数强依赖 QUIC 的服务受影响——删除那条规则即可。
-
-</details>
-
-<details>
-<summary><b>FlClash 的 DNS 和脚本里写的不一样？</b></summary>
-
-检查 FlClash 是否开启了自带的「覆写 DNS」。客户端若二次覆盖，脚本生成的 `dns` 不会完整保留。想用脚本的 DNS 就关掉它。
+Rule Providers 走 jsDelivr CDN，首次加载需要联网。若不可达，对应规则集为空，相关流量会落到后续规则或 `漏网之鱼`；网络恢复后客户端会按 `interval` 自动重试更新。
 
 </details>
 
 <details>
-<summary><b>FlClash 上 Gemini App 没走谷歌AI？</b></summary>
+<summary><b>Bettbox 上开关关了但分流没变？</b></summary>
 
-`PROCESS-NAME` 包名规则要求 `find-process-mode` 生效。FlClash 应用层会用「覆写编辑器 → 常规 → 查找进程」开关的值覆盖脚本设置（默认关闭）。**必须在界面里手动打开这个开关**，仅靠脚本无效。
+确认订阅已重新刷新（脚本需重新执行才能生效），以及 Bettbox 版本 ≥ 1.18.8——可视化覆写开关是该版本的特性。
 
 </details>
 
 <details>
-<summary><b>装了脚本还要开 TUN 吗？</b></summary>
+<summary><b>IPv6 相关</b></summary>
 
-脚本不替你决定。TUN 是否启用由客户端控制，脚本只补充参数（桌面版）。
+DNS 层两版均 `ipv6: false`；Bettbox 版另在顶层强制 `ipv6: false`。在无 IPv6 路由的网络下返回 AAAA 记录只会拖慢连接，这是刻意关闭，不是遗漏。
 
 </details>
-
----
-
-## 更新
-
-脚本更新后，重新复制对应文件内容覆盖客户端里的旧脚本，然后刷新一次订阅让配置重新生成。
-
-```text
-Clash Verge Rev → Clash-Verge-Rev-mihomoScript.js
-FlClash         → FlClash-mihomoScript.js
-```
-
----
-
-## 变更记录
-
-### 2026-09-11
-
-- **修复 FlClash 版地区识别回归**：上一版重写节点筛选正则时误删了一批负向预查与别名，实测导致「南美 01」被归入 `美国策略`、「圣保罗 03」被归入 `欧盟策略`，而纯英文命名的 `Paris` / `Berlin` / `Warsaw` / `Milan` / `Zurich` 等欧盟节点反而收不进 `欧盟策略`（30 条测试节点中 7 条错误）。已按 Verge 版正本补回 `FilterUS` / `FilterEU` 的负向预查与英文国名城市名，并补回 `FilterOT` 的 6 处断言 —— 冷门地区节点重新能被 `冷门自选` 收留。
-- **两版统一补中文城市名**：`洛杉矶` / `纽约` / `旧金山` / `达拉斯` / `圣何塞` 等纯城市命名的美国节点，此前既进不了 `美国策略`，也拿不到 `全球手动` 的美国排序（「达拉斯」「圣何塞」还会因「拉」「塞」二字被误判为欧盟节点）。
-- **Verge 版同步 6 项**：`FilterAL` 补 `(?i)`（原为大小写敏感，节点名里小写的 `channel` / `email` / `author` 等公告类伪节点会漏过滤）；`selectDC` 改为显式去重，不再依赖「`selectFB` 末项恰好是直接连接」；移除无效的 QUIC 嗅探；补 `global-client-fingerprint: chrome`；`github` Provider 拉取间隔 `3600 → 86400`；`nameserver-policy` 补生效条件说明。
-- **本文档修正 10 处与脚本不符的描述**：`ipv6` 取值（原写 `true`，实为 `false`）、`url-test` 间隔（200 → 300）、TUN 字段（删去未设置的 `auto-redirect`，补上 `strict-route`）、`nameserver-policy` 漏列 `+.cn`、`fake-ip-filter` 条目数（11 → 19）、Provider 格式统计（37 + 3 → 38 + 2）、规则条数（「谷歌AI」41 → 38、合计 95 → 98）、规则表行号跳号，并改写了原先「两版完全一致」的表述。
 
 ---
 
@@ -567,10 +370,8 @@ FlClash         → FlClash-mihomoScript.js
 部分设计、规则与资源参考自以下开源项目：
 
 - [Mihomo](https://github.com/MetaCubeX/mihomo) — 内核
-- [666OS/rules](https://github.com/666OS/rules) — 主要规则集
-- [Koolson/Qure](https://github.com/Koolson/Qure) — 设计参考
-- [AWAvenue Ads Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule) — 广告规则
-- [HenryChiao/wificalling](https://github.com/HenryChiao/wificalling) — WiFi Calling 规则
+- [MetaCubeX/meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat) — 全部规则集
+- [Koolson/Qure](https://github.com/Koolson/Qure) · [0xWans/Qure](https://github.com/0xWans/Qure) · [lobehub/lobe-icons](https://github.com/lobehub/lobe-icons) — 图标资源
 
 ---
 
