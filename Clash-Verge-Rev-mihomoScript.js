@@ -266,9 +266,11 @@ function main(config, profileName) {
   // 保留单字「美」：机场存在名为「美」「美 01」的美国节点；
   // 含「美」字但非美国的地区（南美/中美洲/拉美等）用负向预查排除。
   // 中文城市名：纯城市命名的美国节点（如「洛杉矶 01」）此前两边都收不到；
-  // 「达拉斯」「圣何塞」含「拉」「塞」字会在 FilterEU 误命中，已在 EU 负向预查排除。
+  // 「达拉斯」「圣何塞」「波士顿」分别含「拉」「塞」「波」，会在 FilterEU 误命中（波/拉/塞是
+  // 波兰/拉脱维亚/塞尔维亚的单字词），已在 EU 负向预查排除；「美娜多」（印尼 Manado）「北美」
+  // 含「美」但非美国，在本过滤器负向预查排除。
   const FilterUS =
-    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|洛杉矶|纽约|旧金山|西雅图|芝加哥|达拉斯|迈阿密|亚特兰大|波士顿|凤凰城|圣何塞|华盛顿))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|Argentina|Brazil|Plus|Australia|5x)).*$";
+    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|洛杉矶|纽约|旧金山|西雅图|芝加哥|达拉斯|迈阿密|亚特兰大|波士顿|凤凰城|圣何塞|华盛顿))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|美娜多|北美|Argentina|Brazil|Plus|Australia|5x)).*$";
 
   const FilterTW =
     "(?i)^(?=.*(台|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
@@ -276,7 +278,7 @@ function main(config, profileName) {
   // 补充英文国名/城市名（Germany/Paris 等），避免纯英文命名的欧盟节点漏进「冷门自选」；
   // 同时排除含「拉」「比」「罗」等汉字但属拉美的地区名（圣保罗/哥伦比亚/委内瑞拉/巴拉圭）与俄罗斯。
   const FilterEU =
-    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|圣保罗|哥伦比亚|委内瑞拉|巴拉圭|俄罗斯|达拉斯|圣何塞|排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|圣保罗|哥伦比亚|委内瑞拉|巴拉圭|俄罗斯|达拉斯|圣何塞|波士顿|排除1|排除2|5x)).*$";
 
   const FilterMO =
     "(?i)^(?=.*(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG))(?!.*(排除1|排除2|5x)).*$";
