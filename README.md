@@ -73,10 +73,10 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
         ┌────────────────┼────────────────┐
         ▼                ▼                ▼
   proxy-groups         rules         rule-providers
-   (59 个)            (98 条)          (40 个)
+   (59 个)      (98 / 106 条)          (40 个)
         │
         ├── dns（Fake-IP + 国内外分流）
-        ├── sniffer（HTTP / TLS / QUIC）
+        ├── sniffer（HTTP / TLS）
         ├── hosts（合并追加）
         └── tun / profile / 基础参数
                          │
@@ -98,13 +98,15 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 
 ## 配置规模
 
-| 项目 | 数量 |
-| --- | --- |
-| 代理组 | **59** |
-| 分流规则 | **98** |
-| Rule Providers | **40** |
+| 项目 | Clash Verge Rev | FlClash (Android) |
+| --- | --- | --- |
+| 代理组 | **59** | **59** |
+| 分流规则 | **98** | **106**（多 8 条国内应用直连） |
+| Rule Providers | **40** | **40** |
 
-两个版本脚本生成的代理组、Rule Providers **完全一致**，规则 FlClash 版多 8 条国内应用直连（7 条 `PROCESS-NAME` 精确包名 + 1 条 `PROCESS-NAME-REGEX` 厂商前缀，置顶），其余差异只在 TUN、进程查找、保活间隔等客户端适配项（见[两版差异](#两版脚本差异)）。
+两版生成的**代理组数量（59）与 Rule Providers（40）一致**；规则条数相差 8 条 —— FlClash 版多出 8 条置顶的国内应用直连（7 条 `PROCESS-NAME` 精确包名 + 1 条 `PROCESS-NAME-REGEX` 厂商前缀）。
+
+另外需要说明：**两版并非「只差客户端适配项」**。DNS 形态（域名 DoH vs IP 直连 DoH）、`cache-algorithm`、`nameserver-policy` 条目、`fake-ip-filter` 条目数都存在实质差异，完整清单见[两版差异](#两版脚本差异)。
 
 ---
 
@@ -192,7 +194,7 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 
 识别不到的节点统一进入 **`冷门自选`**。
 
-- **自动测速**：`url-test`，探测 `https://www.google.com/generate_204`，`interval: 200`，`lazy: true`
+- **自动测速**：`url-test`，探测 `https://www.google.com/generate_204`，`interval: 300`，`tolerance: 50`，`lazy: true`，`hidden: true`
 - **均衡-散列**：`consistent-hashing`，同一目标尽量固定在同一节点，适合登录态敏感的服务
 - **均衡-轮询**：`round-robin`，在同地区多节点间轮换
 
@@ -210,8 +212,8 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 | 新加坡 | 坡 · 狮城 · 獅城 · 🇸🇬 · `SG` · Sing · SIN · XSP |
 | 日本 | 日 · 🇯🇵 · 樱花 · 🌸 · 东京 · 大阪 · `JP` · Japan · NRT · HND · KIX · CTS · FUK |
 | 韩国 | 韩 · 韓 · 首尔 · 首爾 · 🇰🇷 · `KR` · `KOR` · Korea |
-| 美国 | 美 · 🇺🇸 · `US` · `USA` · JFK · SJC · LAX · ORD · ATL · DFW · SFO · MIA · SEA · IAD |
-| 欧盟 | 法 · 德 · 意 · 西 · 荷 · 瑞 · 波 · 英 等成员国 + 🇦🇹 🇧🇪 🇨🇿 🇩🇰 🇫🇮 🇫🇷 🇩🇪 🇮🇪 🇮🇹 🇱🇹 🇱🇺 🇳🇱 🇵🇱 🇸🇪 🇬🇧 · CDG · FRA · AMS · MAD · BCN · FCO · MUC · BRU |
+| 美国 | 美 · 🇺🇸 · `US` · `USA` · JFK · SJC · LAX · ORD · ATL · DFW · SFO · MIA · SEA · IAD · 洛杉矶 · 纽约 · 旧金山 · 西雅图 · 芝加哥 · 达拉斯 · 迈阿密 · 亚特兰大 · 波士顿 · 凤凰城 · 圣何塞 · 华盛顿 |
+| 欧盟 | 法 · 德 · 意 · 西 · 荷 · 瑞 · 波 · 英 等成员国 + 🇦🇹 🇧🇪 🇨🇿 🇩🇰 🇫🇮 🇫🇷 🇩🇪 🇮🇪 🇮🇹 🇱🇹 🇱🇺 🇳🇱 🇵🇱 🇸🇪 🇬🇧 · CDG · FRA · AMS · MAD · BCN · FCO · MUC · BRU · `DE` · `FR` · `NL` · Germany · France · Paris · Berlin · Amsterdam · Zurich · Vienna · Madrid · Milan · Stockholm · Dublin · Warsaw · Lisbon · Prague · Copenhagen · Oslo · Helsinki |
 
 以下三个地区**没有独立的策略组**（节点归入 `欧盟策略`），仅用于在 `全球手动` 中排到更靠前的位置：
 
@@ -221,7 +223,13 @@ https://raw.githubusercontent.com/hh1848/Clash-Verge-and-FlClash-Custom-Script/m
 | 德国 | 德 · 🇩🇪 · `DE` · Germany · Frankfurt · FRA · MUC | 第 9 位 |
 | 法国 | 法 · 🇫🇷 · `FR` · France · Paris · CDG | 第 10 位 |
 
-> 地区过滤器内置了 `排除1 / 排除2 / 5x / Plus / Australia / Africa / 尼日利亚` 等负向词，用于排除机场的「××节点 Plus」这类干扰命名。
+> 地区过滤器内置 `5x` / `Plus` / `Australia` / `Africa` / `尼日利亚` 等负向词，用于排除机场的「××节点 Plus」这类干扰命名。
+>
+> 另有一组负向预查：`南美` / `中美洲` / `拉美` / `拉丁` / `阿根廷` / `巴西` / `圣保罗` / `哥伦比亚` / `委内瑞拉` / `巴拉圭` / `俄罗斯`。这些地名含「美」「拉」「罗」「塞」等与地区关键词冲突的汉字，不排除就会被误归入 `美国策略` 或 `欧盟策略`。
+>
+> `冷门自选` 的过滤器用 `(?<!南)(?<!中)(?<!丁)(?<!拉)美`、`拉(?=脱)`、`罗(?=马)`、`比(?=利)`、`保(?=加)`、`瑞(?=士|典)` 这类断言区分「南美 vs 美国」「达拉斯 vs 拉脱维亚」，是刻意设计，不是笔误。
+>
+> Verge 版另保留 `排除1` / `排除2` 两个**占位符**（从不匹配任何真实节点名，留给你自行填要排除的关键词）；FlClash 版已在 2026-09-09 重构时移除。
 
 ---
 
@@ -261,7 +269,7 @@ USE · USED · TOTAL · EXPIRE · EMAIL · Panel · Channel · Author
 
 ## 分流规则
 
-共 **98 条**，自上而下匹配：
+共 **98 条**（FlClash 版 106 条：多出 8 条置顶的国内应用直连），自上而下匹配：
 
 | 顺序 | 规则 | 目标 | 条数 |
 | --- | --- | --- | --- |
@@ -269,18 +277,21 @@ USE · USED · TOTAL · EXPIRE · EMAIL · Panel · Channel · Author
 | 2 | `ukwifi` | `UKwifi` | 1 |
 | 3 | `LocationDKS` | `抖快书定位` | 1 |
 | 4 | `Private` / `Direct` / `XPTV` / `Download` / `AppleCN` | `直接连接` | 5 |
-| 5 | `AND,((DST-PORT,443),(NETWORK,UDP))` | `REJECT` | 1 |
-| 6 | Gemini / NotebookLM（含 2 条 `PROCESS-NAME` 包名） | `谷歌AI` | 41 |
-| 7 | `googleapis.com` / `googleusercontent.com` / `apis.google.com` 交还 `谷歌服务`（防 AI 列表宽后缀劫持 Gmail 翻译）+ AI 接口补齐 | `谷歌服务`/`谷歌AI` | 9 |
+| 5 | `AND,((DST-PORT,443),(NETWORK,UDP))` — QUIC 拦截 | `REJECT` | 1 |
+| 6 | Gemini / NotebookLM（2 条 `PROCESS-NAME` 包名 + 36 条域名） | `谷歌AI` | 38 |
+| 7 | `googleapis.com` / `googleusercontent.com` / `apis.google.com` 交还 `谷歌服务`（防 AI 列表宽后缀劫持 Gmail 翻译） | `谷歌服务` | 3 |
 | 8 | `AI` | `人工智能` | 1 |
 | 9 | `DOMAIN-KEYWORD,speedtest` + `Speedtest` | `网络测试` | 2 |
 | 10 | `Twitter` / `Telegram` / `SocialMedia` / `NewsMedia` | 对应服务组 | 4 |
 | 11 | `DOMAIN-SUFFIX,steamserver.net` | `直接连接` | 1 |
 | 12 | `Games` / `Crypto` / `Emby` / `Netflix` / `YouTube` / `Streaming` / `Apple` / `Google` / `github` / `Microsoft` | 对应组 | 10 |
 | 13 | `DOMAIN-SUFFIX,cn` — 所有 .cn 域名强制直连 | `国内流量` | 1 |
-| 15 | `Proxy` / `China` | 对应组 | 2 |
-| 16 | IP CIDR 规则（`no-resolve`） | 对应组 / `REJECT` | 12 |
+| 14 | `Proxy` | `国外流量` | 1 |
+| 15 | 12 条 IP 查询站域名（`ping0.cc` · `ipcheck.ing` · `ip.sb` · `ipinfo.io` · `ip-api.com` · `ipify.org` · `ipleak.net` · `browserleaks.com` · `whoer.net` · `scamalytics.com` · `ipqualityscore.com` · `myip.la`） | `国外流量` | 12 |
+| 16 | `China` | `国内流量` | 1 |
+| 17 | 12 条 IP CIDR 规则（`AdvertisingIP` · `PrivateIP` · `XPTVIP` · `AIIP` · `TelegramIP` · `SocialMediaIP` · `EmbyIP` · `NetflixIP` · `StreamingIP` · `GoogleIP` · `ProxyIP` · `ChinaIP`，均带 `no-resolve`） | 对应组 / `REJECT` | 12 |
 | 末 | `MATCH` | `兜底流量` | 1 |
+| — | **合计** | — | **98** |
 
 ### 关于 QUIC / HTTP/3
 
@@ -296,7 +307,7 @@ AND,((DST-PORT,443),(NETWORK,UDP)),REJECT
 
 ## Rule Providers
 
-40 个，均为 `http` 类型。其中 37 个为 `.mrs` 格式（Mihomo 二进制规则集，体积小、加载快），其余 3 个为 `.list` / `.yaml`。
+40 个，均为 `http` 类型。其中 **38 个为 `.mrs` 格式**（Mihomo 二进制规则集，体积小、加载快），其余 2 个为文本格式（`ukwifi` 用 `.list`、`github` 用 `.yaml`）。全部 40 个 Provider 的 `interval` 均为 `86400`（每天一次）。
 
 | 来源 | 数量 | 更新间隔 |
 | --- | --- | --- |
@@ -304,7 +315,7 @@ AND,((DST-PORT,443),(NETWORK,UDP)),REJECT
 | [666OS/rules](https://github.com/666OS/rules) — ipcidr | 12 | 86400 |
 | [HenryChiao/wificalling](https://github.com/HenryChiao/wificalling) | 1 | 86400 |
 | [AWAvenue Ads Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule) | 1 | 86400 |
-| [Kelee GitHub Rule](https://rule.kelee.one/Clash/GitHub.yaml) | 1 | 3600 |
+| [Kelee GitHub Rule](https://rule.kelee.one/Clash/GitHub.yaml) | 1 | 86400 |
 
 **域名规则（25）**：Tracking · Advertising · Direct · LocationDKS · Private · Download · Speedtest · AI · Telegram · Twitter · SocialMedia · NewsMedia · Games · Crypto · Netflix · YouTube · XPTV · Emby · Streaming · AppleCN · Apple · Google · Microsoft · Proxy · China
 
@@ -320,9 +331,10 @@ AND,((DST-PORT,443),(NETWORK,UDP)),REJECT
 
 ```yaml
 enable: true
-ipv6: true
+ipv6: false            # 与全局 ipv6: false 联动，刻意关闭
 enhanced-mode: fake-ip
 fake-ip-range: 198.18.0.1/16
+cache-algorithm: arc   # 仅 Verge 版设置（需 mihomo 内核 ≥ 1.19.2）
 use-hosts: true
 respect-rules: true
 ```
@@ -338,17 +350,33 @@ respect-rules: true
 
 | 匹配 | 使用 DNS |
 | --- | --- |
-| `Advertising` + `AWAvenueAds` | `rcode://success`（直接丢弃） |
+| `+.cn` | 国内 DoH |
 | `Direct` + `Private` + `China` | 国内 DoH |
 | `Speedtest` `Twitter` `Telegram` `SocialMedia` `NewsMedia` `Games` `Crypto` `Emby` `Netflix` `YouTube` `Streaming` `Apple` `Google` `Microsoft` `Proxy` | Google / Cloudflare DoH |
+| `Advertising` + `AWAvenueAds` | `rcode://success`（仅 Verge 版，且当前不生效 —— 见下方说明） |
+| `time.*.com` `ntp.*.com` `+.pool.ntp.org` | 国内 DoH（仅 FlClash 版） |
 
-**Fake-IP Filter**（这些绕过 Fake-IP，减少局域网、时间同步、推送受影响）：
+> [!NOTE]
+> **fake-ip 模式下，只有被 `fake-ip-filter` 放行的域名才会查 `nameserver-policy`。**
+> 未命中 `fake-ip-filter` 的域名由 fake-ip 中间件直接返回虚拟 IP，不会进入解析器的策略匹配 —— 策略判定函数 `matchPolicy` 位于 `ipExchange` 内部，在中间件链上比 fake-ip 更靠下。
+>
+> 所以上表中**真正生效的只有 `+.cn` 与 `Direct/Private/China` 两行**（它们同时出现在 `fake-ip-filter` 里），以及 FlClash 版新增的 NTP / 时间域名那一行。
+> 其余行当前不会触发，保留是为了将来关闭 fake-ip 时可用 —— 直连域名的解析由 `direct-nameserver` 兜住，不必担心「直连域名走了国外 DNS」。
+
+**Fake-IP Filter**（命中这些规则的域名走真实解析，用于局域网、时间同步、推送、游戏主机 NAT 穿透等）：
+
+Verge 版 19 条：
 
 ```text
-+.lan · +.local · time.*.com · ntp.*.com · +.market.xiaomi.com
-+.pub.3gppnetwork.org · +.push.apple.com · +.bing.com
++.lan · +.local
+time.*.com · time.*.gov · ntp.*.com · +.time.edu.cn · +.ntp.org.cn
++.market.xiaomi.com · +.pub.3gppnetwork.org · +.push.apple.com · +.bing.com
++.srv.nintendo.net · +.xboxlive.com · +.playstation.net · stun.*.*
++.cn
 rule-set:Direct · rule-set:Private · rule-set:China
 ```
+
+FlClash 版 13 条，差异在于：新增 `+.pool.ntp.org`（Android 默认 NTP 源）；移除 `time.*.gov` / `+.time.edu.cn` / `+.ntp.org.cn`，以及三条游戏主机 NAT 穿透条目。
 
 ---
 
@@ -360,9 +388,10 @@ rule-set:Direct · rule-set:Private · rule-set:China
 | --- | --- | --- |
 | HTTP | `80`, `8080-8880` | `override-destination: true` |
 | TLS | `443`, `8443` | — |
-| QUIC | `443`, `8443` | — |
 
 跳过域名：`Mijia Cloud`、`+.push.apple.com`
+
+> **QUIC 嗅探已移除（两版均无）**：本配置里的 `AND,((DST-PORT,443),(NETWORK,UDP)),REJECT` 已把未命中前置直连规则的 UDP 443 全部拒绝，嗅探到的 QUIC 域名无处可用，只白付一次握手解析开销。
 
 ### Hosts
 
@@ -379,16 +408,20 @@ cn.bing.com                                 → www4.bing.com
 
 ```yaml
 mode: rule
-ipv6: true
+ipv6: false                    # 刻意关闭，见上方 DNS 一节
 unified-delay: true
 tcp-concurrent: true
-find-process-mode: strict
+global-client-fingerprint: chrome
+find-process-mode: strict      # strict = 仅在规则需要时查进程（性能友好），不是漏配
+keep-alive-interval: 15        # FlClash 版为 30（省电）
 keep-alive-idle: 600
 
 profile:
-  store-selected: true   # 记住代理组选择
-  store-fake-ip: true    # 记住 Fake-IP 状态
+  store-selected: true         # 记住代理组选择
+  store-fake-ip: true          # 记住 Fake-IP 状态
 ```
+
+> `ipv6: false` 在顶层与 `dns` 段各出现一次，是有意的三处联动（第三处是客户端应用层的 IPv6 开关）：`dns.ipv6: true` 会让 DNS 返回 AAAA，在无 IPv6 路由的 TUN 环境下拖慢连接，还有绕过 mihomo 造成泄露的风险。
 
 ### TUN（仅 Clash Verge Rev）
 
@@ -398,11 +431,15 @@ profile:
 stack: mixed
 dns-hijack: [any:53, tcp://any:53]
 auto-route: true
-auto-redirect: true
+strict-route: true
 auto-detect-interface: true
 ```
 
 是否启用 TUN 仍由客户端自己的开关决定。
+
+> 脚本**不设置** `auto-redirect`（仅 Linux 生效，Windows 下无意义）。
+> `strict-route: true` 用于堵住 Windows 多网卡下的 on-link DNS 逃逸 —— 校园网 / 企业网网卡与 DNS 服务器同网段时，DNS 查询会绕过 TUN 直连出去；开启后由防火墙规则强制全部流量进 TUN。
+> 代价：可能影响 WSL2 / VMware / VirtualBox 虚拟网络与局域网入站，相关功能异常时需自行评估是否回退本项。
 
 ---
 
@@ -410,10 +447,17 @@ auto-detect-interface: true
 
 | 项目 | Clash Verge Rev | FlClash (Android) | 原因 |
 | --- | --- | --- | --- |
-| TUN 覆盖 | 合并补充 | **不修改** | Android 由 FlClash 的 VpnService 自行接管 |
-| `quic-go-disable-gso` | 启用 | **移除** | 仅 Linux 内核有效，Android 无用 |
+| TUN 覆盖 | 合并补充 `stack` / `dns-hijack` / `auto-route` / `strict-route` / `auto-detect-interface` | **不修改**（`tun` 为空对象） | Android 由 FlClash 的 VpnService 自行接管 |
+| `quic-go-disable-gso` | 启用 | **移除** | 桌面端规避 Windows 上 quic-go 的 GSO 历史稳定性问题；Android 上该开关无用 |
 | `keep-alive-interval` | `15` | `30` | 省电，减少移动网络频繁唤醒 |
-| `find-process-mode` | `strict` | `strict` | Android 上匹配应用包名，用于 App 分流 |
+| `find-process-mode` | `strict` | `strict` | 两版一致；Android 上用于按应用包名分流（需在界面打开「查找进程」开关） |
+| `global-client-fingerprint` | `chrome` | `chrome` | 两版一致，统一 TLS ClientHello 指纹 |
+| `dns.nameserver` 形式 | 域名 DoH：`cloudflare-dns.com` / `dns.google` | **IP 直连 DoH**：`1.1.1.1` / `8.8.8.8` | 免 bootstrap 域名解析，免疫 bootstrap 污染 |
+| `dns.cache-algorithm` | `arc` | 未设置（内核默认） | 桌面端显式优化 DNS 缓存命中率 |
+| `dns.nameserver-policy` | 含 `Advertising → rcode://success` 与国外 DoH 条目 | 无 `Advertising` 条目，改为 NTP / 时间域名走国内 DoH | 见 [DNS](#dns) 一节的生效条件说明 |
+| `dns.fake-ip-filter` | 19 条 | 13 条 | FlClash 新增 `+.pool.ntp.org`；移除 gov / edu 时间域名与游戏主机 NAT 穿透条目 |
+| `sniffer` | HTTP + TLS | HTTP + TLS | 两版一致（QUIC 嗅探均已移除） |
+| 地区识别词表 | 见[节点识别](#节点识别) | 与 Verge 版对齐；另有 `狮城` / `獅城` / `首爾` 别名，且 `排除1` / `排除2` 占位符已移除 | — |
 | 国内应用直连 | **无** | 新增 8 条（7 条 `PROCESS-NAME` 精确包名 + 1 条 `PROCESS-NAME-REGEX` 厂商前缀，置顶） | 所有国内 App 整应用强制直连：73 个厂商包名前缀（腾讯/阿里/字节/百度/网易/美团/京东/拼多多/B站/微博/小红书/爱奇艺/优酷/360/OPPO/vivo/游戏厂商/运营商/银行等，含全部 `cn.*` 包名空间）+ 9 个特殊包名（支付宝/滴滴/12306/携程等），覆盖域名列表收不齐的小程序业务域名 / 游戏服务器 IP；**需在 FlClash 打开「查找进程」开关**，正则需 mihomo v1.18.8+ |
 | 代理组 / 规则 / Rule Providers | 59 / 98 / 40 | 59 / 106 / 40 | FlClash 多 8 条国内应用直连 |
 
@@ -504,6 +548,17 @@ Fake-IP · respect-rules · Sniffer · TUN
 Clash Verge Rev → Clash-Verge-Rev-mihomoScript.js
 FlClash         → FlClash-mihomoScript.js
 ```
+
+---
+
+## 变更记录
+
+### 2026-09-11
+
+- **修复 FlClash 版地区识别回归**：上一版重写节点筛选正则时误删了一批负向预查与别名，实测导致「南美 01」被归入 `美国策略`、「圣保罗 03」被归入 `欧盟策略`，而纯英文命名的 `Paris` / `Berlin` / `Warsaw` / `Milan` / `Zurich` 等欧盟节点反而收不进 `欧盟策略`（30 条测试节点中 7 条错误）。已按 Verge 版正本补回 `FilterUS` / `FilterEU` 的负向预查与英文国名城市名，并补回 `FilterOT` 的 6 处断言 —— 冷门地区节点重新能被 `冷门自选` 收留。
+- **两版统一补中文城市名**：`洛杉矶` / `纽约` / `旧金山` / `达拉斯` / `圣何塞` 等纯城市命名的美国节点，此前既进不了 `美国策略`，也拿不到 `全球手动` 的美国排序（「达拉斯」「圣何塞」还会因「拉」「塞」二字被误判为欧盟节点）。
+- **Verge 版同步 6 项**：`FilterAL` 补 `(?i)`（原为大小写敏感，节点名里小写的 `channel` / `email` / `author` 等公告类伪节点会漏过滤）；`selectDC` 改为显式去重，不再依赖「`selectFB` 末项恰好是直接连接」；移除无效的 QUIC 嗅探；补 `global-client-fingerprint: chrome`；`github` Provider 拉取间隔 `3600 → 86400`；`nameserver-policy` 补生效条件说明。
+- **本文档修正 10 处与脚本不符的描述**：`ipv6` 取值（原写 `true`，实为 `false`）、`url-test` 间隔（200 → 300）、TUN 字段（删去未设置的 `auto-redirect`，补上 `strict-route`）、`nameserver-policy` 漏列 `+.cn`、`fake-ip-filter` 条目数（11 → 19）、Provider 格式统计（37 + 3 → 38 + 2）、规则条数（「谷歌AI」41 → 38、合计 95 → 98）、规则表行号跳号，并改写了原先「两版完全一致」的表述。
 
 ---
 

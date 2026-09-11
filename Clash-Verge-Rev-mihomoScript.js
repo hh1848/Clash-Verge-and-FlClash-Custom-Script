@@ -1,6 +1,19 @@
 // Clash Verge Rev 全局扩展脚本
 // 作用：保留当前机场的 proxies / proxy-providers，统一替换为 MihomoProPlus 的代理组、规则与 DNS。
 // 使用位置：订阅 -> 全局扩展脚本（Script）
+//
+// ==================== 2026-09-11 修订 ====================
+//  A. FilterAL 补 (?i) 内联标志 —— 原为大小写敏感，节点名里小写的 channel/email/author
+//     等公告类伪节点会漏过滤（同文件其余过滤器均带 (?i)）。
+//  B. selectDC 改为显式去重，不再依赖「selectFB 末项恰好是直接连接」这一隐式前提
+//     （验证：生成配置与改前逐字节一致）。
+//  C. 移除 QUIC 嗅探 —— 同配置的 AND((DST-PORT,443),(NETWORK,UDP)),REJECT 已使嗅探结果
+//     无处可用，仅白付握手解析开销（与 FlClash 版对齐）。
+//  D. 补 global-client-fingerprint: chrome，与 FlClash 版对齐。
+//  E. github rule-provider 拉取间隔 3600 → 86400，与其余 39 个 provider 一致。
+//  F. nameserver-policy 补 fake-ip 生效条件说明（纯注释，无行为变化）。
+//  G. FilterUS 补中文城市名（洛杉矶/纽约/达拉斯/圣何塞…），与 FlClash 版对齐：
+//     纯城市命名的美国节点此前既进不了「美国策略」，也拿不到「全球手动」的美国排序。
 
 function main(config, profileName) {
   // 不处理 MihomoProPlus 模板本身
@@ -37,6 +50,8 @@ function main(config, profileName) {
   config.ipv6 = false;
   config["unified-delay"] = true;
   config["tcp-concurrent"] = true;
+  // 统一 TLS Client Hello 指纹为 chrome，降低节点侧特征识别（与 FlClash 版对齐）
+  config["global-client-fingerprint"] = "chrome";
   config["find-process-mode"] = "strict";
   config["keep-alive-interval"] = 15;
   config["keep-alive-idle"] = 600;
@@ -85,6 +100,9 @@ function main(config, profileName) {
   );
 
   // ==================== 流量嗅探 ====================
+  // 仅嗅探 HTTP / TLS。QUIC 嗅探已移除（与 FlClash 版对齐）：本配置中
+  // AND,((DST-PORT,443),(NETWORK,UDP)),REJECT 已把未命中前置直连规则的 UDP 443 全部拒绝，
+  // 嗅探到的 QUIC 域名永远用不上，只白付一次握手解析开销。
 
   config.sniffer = {
     enable: true,
@@ -99,13 +117,6 @@ function main(config, profileName) {
       },
 
       TLS: {
-        ports: [
-          443,
-          8443
-        ]
-      },
-
-      QUIC: {
         ports: [
           443,
           8443
@@ -212,6 +223,11 @@ function main(config, profileName) {
       "https://doh.pub/dns-query"
     ],
 
+    // ⚠️ 生效条件：fake-ip 模式下，只有命中 fake-ip-filter（走真实解析）的域名才会查本表，
+    // 未命中的域名直接返回 fake-ip、不进 Resolver.matchPolicy。因此下面「国内 DoH」两条
+    // (+.cn / rule-set:Direct,Private,China) 是生效的；「国外 DoH」那条与广告 rcode 当前
+    // 不会触发 —— nameserver 本身就是 CF/Google DoH，代理方向走代理端解析，结果一致，
+    // 保留仅为将来关闭 fake-ip 时可用。
     "nameserver-policy": {
       "rule-set:Advertising,AWAvenueAds":
         "rcode://success",
@@ -249,8 +265,10 @@ function main(config, profileName) {
 
   // 保留单字「美」：机场存在名为「美」「美 01」的美国节点；
   // 含「美」字但非美国的地区（南美/中美洲/拉美等）用负向预查排除。
+  // 中文城市名：纯城市命名的美国节点（如「洛杉矶 01」）此前两边都收不到；
+  // 「达拉斯」「圣何塞」含「拉」「塞」字会在 FilterEU 误命中，已在 EU 负向预查排除。
   const FilterUS =
-    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|Argentina|Brazil|Plus|Australia|5x)).*$";
+    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|洛杉矶|纽约|旧金山|西雅图|芝加哥|达拉斯|迈阿密|亚特兰大|波士顿|凤凰城|圣何塞|华盛顿))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|Argentina|Brazil|Plus|Australia|5x)).*$";
 
   const FilterTW =
     "(?i)^(?=.*(台|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH))(?!.*(排除1|排除2|5x)).*$";
@@ -258,7 +276,7 @@ function main(config, profileName) {
   // 补充英文国名/城市名（Germany/Paris 等），避免纯英文命名的欧盟节点漏进「冷门自选」；
   // 同时排除含「拉」「比」「罗」等汉字但属拉美的地区名（圣保罗/哥伦比亚/委内瑞拉/巴拉圭）与俄罗斯。
   const FilterEU =
-    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|圣保罗|哥伦比亚|委内瑞拉|巴拉圭|俄罗斯|排除1|排除2|5x)).*$";
+    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|圣保罗|哥伦比亚|委内瑞拉|巴拉圭|俄罗斯|达拉斯|圣何塞|排除1|排除2|5x)).*$";
 
   const FilterMO =
     "(?i)^(?=.*(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG))(?!.*(排除1|排除2|5x)).*$";
@@ -268,14 +286,14 @@ function main(config, profileName) {
   // 不被「美/拉/比/罗」字连带排除，可正常进入冷门自选；
   // 美国/拉脱维亚/比利时/罗马尼亚 仍按原样被排除。
   const FilterOT =
-    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|(?<!南)(?<!中)(?<!丁)(?<!拉)美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比(?=利)|保(?=加)|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉(?=脱)|立|卢|马耳他|荷|波|葡|罗(?=马)|斯洛伐|斯洛文|西班牙|瑞(?=士|典)|英|倫敦|伦敦|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bUK\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki|MFM|MOG|Taipa|Coloane|Cotai))";
+    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|(?<!南)(?<!中)(?<!丁)(?<!拉)美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比(?=利)|保(?=加)|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉(?=脱)|立|卢|马耳他|荷|波|葡|罗(?=马)|斯洛伐|斯洛文|西班牙|瑞(?=士|典)|英|倫敦|伦敦|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bUK\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|洛杉矶|纽约|旧金山|西雅图|芝加哥|达拉斯|迈阿密|亚特兰大|波士顿|凤凰城|圣何塞|华盛顿|LHR|LGW|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki|MFM|MOG|Taipa|Coloane|Cotai))";
 
   // 机场信息节点统一排除规则（流量/到期/公告等），供各策略组 exclude-filter 复用
   const excludeInfoNodes =
     "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启";
 
   const FilterAL =
-    "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|超时|重启|维护|暂停|失效|公告|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
+    "(?i)^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|超时|重启|维护|暂停|失效|公告|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
 
   // ==================== 策略组公共列表 ====================
 
@@ -297,7 +315,8 @@ function main(config, profileName) {
   // 以下列表均由 selectFB 派生，仅默认选中项（首项）不同；增删策略组时只需改上面
   const selectPY = ["默认代理", ...selectFB];
 
-  const selectDC = ["直接连接", ...selectPY.slice(0, -1)];
+  // 显式去重，不再依赖「selectFB 末项恰好是直接连接」这一隐式前提
+  const selectDC = ["直接连接", ...selectPY.filter(item => item !== "直接连接")];
 
   const selectUS = ["美国策略", ...selectPY.filter(item => item !== "美国策略")];
 
@@ -1439,7 +1458,7 @@ function main(config, profileName) {
 
       format: "yaml",
 
-      interval: 3600,
+      interval: 86400,
 
       // 与其他 provider 统一经「故障转移」下载（kelee 域名直连在部分网络下不稳）
       proxy: "故障转移",

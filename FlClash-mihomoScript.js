@@ -34,6 +34,19 @@
 //     与「全球手动」排序正则的词表对齐，避免两套词表漂移
 //  I. 代码重构：rule-providers / 地区策略组 / 业务选择列表改为数据驱动生成，行为不变，代码量约减半；
 //     「全球手动」排序的优先级判断直接复用节点筛选正则（编译前剥离 mihomo 专用的 (?i) 内联标志）
+//
+// ==================== 本版修复（2026-09-11） ====================
+//  [功能修复]
+//  J. 地区识别回归修复：上一版重写节点筛选正则时误删了若干负向预查与别名，实测导致
+//     「南美 01」被当美国节点、「圣保罗 03」被当欧盟节点，而纯英文命名的
+//     Paris/Berlin/Warsaw/Milan/Zurich 等欧盟节点反而进不了「欧盟策略」；
+//     FilterOT 的 6 处断言（(?<!南)美、拉(?=脱)、罗(?=马)、比(?=利)、保(?=加)、瑞(?=士|典)）
+//     一并补回，「冷门自选」重新能收留拉美等冷门地区节点。地区词表与 Verge 版对齐。
+//  K. FilterUS 补中文城市名（洛杉矶/纽约/旧金山…）：纯城市命名的美国节点
+//     此前既进不了「美国策略」，也拿不到「全球手动」的美国排序。
+//  L. FilterAL 补 (?i) 内联标志 —— 原为大小写敏感，节点名里小写的
+//     channel/email/author 等公告类伪节点会漏过滤（同文件其余过滤器均带 (?i)）。
+//  M. github rule-provider 拉取间隔 3600 → 86400，与其余 39 个 provider 一致。
 function main(config, profileName) {
   // 不处理 MihomoProPlus 模板本身
   if (
@@ -206,21 +219,28 @@ function main(config, profileName) {
     "(?i)^(?=.*(日|🇯🇵|樱花|🌸|东京|大阪|\\bJP\\b|Japan|NRT|HND|KIX|CTS|FUK))(?!.*(尼日利亚|5x)).*$";
   const FilterKR =
     "(?i)^(?=.*(韩|🇰🇷|韓|首尔|首爾|南朝鲜|\\bKR\\b|\\bKOR\\b|Korea))(?!.*(Africa|5x)).*$";
+  // 保留单字「美」：机场存在名为「美」「美 01」的美国节点；
+  // 含「美」字但非美国的地区（南美/中美洲/拉美）与拉美国家用负向预查排除（与 Verge 版同源）。
+  // 中文城市名：纯城市命名的美国节点（如「洛杉矶 01」）此前两边都收不到；
+  // 注意「达拉斯」「圣何塞」含「拉」「塞」字，会在 FilterEU 里误命中，已在 EU 负向预查中排除。
   const FilterUS =
-    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD))(?!.*(Plus|Australia|5x)).*$";
+    "(?i)^(?=.*(美|🇺🇸|\\bUS\\b|\\bUSA\\b|JFK|SJC|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|洛杉矶|纽约|旧金山|西雅图|芝加哥|达拉斯|迈阿密|亚特兰大|波士顿|凤凰城|圣何塞|华盛顿))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|Argentina|Brazil|Plus|Australia|5x)).*$";
   const FilterTW =
     "(?i)^(?=.*(台|🇹🇼|\\bTW\\b|Taiwan|TPE|TSA|KHH))(?!.*(5x)).*$";
+  // 补充英文国名/城市名（Germany/Paris 等），避免纯英文命名的欧盟节点漏进「冷门自选」；
+  // 同时排除含「拉」「比」「罗」「塞」等汉字但属拉美/美国的地区名
+  // （圣保罗/哥伦比亚/委内瑞拉/巴拉圭/达拉斯/圣何塞）与俄罗斯。
   const FilterEU =
-    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom))(?!.*(5x)).*$";
+    "(?i)^(?=.*(奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|🇬🇧|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|LHR|LGW|\\bUK\\b|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki))(?!.*(南美|中美洲|拉美|拉丁|阿根廷|巴西|圣保罗|哥伦比亚|委内瑞拉|巴拉圭|俄罗斯|达拉斯|圣何塞|5x)).*$";
   const FilterMO =
     "(?i)^(?=.*(澳门|澳門|濠江|🇲🇴|\\bMO\\b|Macau|Macao|MFM|Taipa|氹仔|路氹|路环|Coloane|Cotai|MOG))(?!.*(5x)).*$";
   const FilterOT =
-    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比|保|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉|立|卢|马耳他|荷|波|葡|罗|斯洛伐|斯洛文|西班牙|瑞|英|倫敦|伦敦|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bUK\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|London|United\\s*Kingdom|MFM|MOG|Taipa|Coloane|Cotai))";
+    "(?i)^(?!.*(超时|重启|维护|暂停|失效|公告|套餐|到期|距离|剩余|天数|即将|重置|下次|官网|客服|网站|网址|过期|已用|联系|邮箱|工单|通知|失败|挂掉|未知地区|未知节点|DIRECT|直接连接|(?<!南)(?<!中)(?<!丁)(?<!拉)美|港|坡|台|狮城|獅城|日|樱花|🌸|东京|大阪|韩|奥|比(?=利)|保(?=加)|克罗地亚|塞|捷|丹|爱沙|芬|法|德|希|匈|爱尔|意|拉(?=脱)|立|卢|马耳他|荷|波|葡|罗(?=马)|斯洛伐|斯洛文|西班牙|瑞(?=士|典)|英|倫敦|伦敦|澳门|澳門|濠江|🇭🇰|🇹🇼|🇸🇬|🇯🇵|🇰🇷|🇺🇸|🇬🇧|🇲🇴|🇦🇹|🇧🇪|🇨🇿|🇩🇰|🇫🇮|🇫🇷|🇩🇪|🇮🇪|🇮🇹|🇱🇹|🇱🇺|🇳🇱|🇵🇱|🇸🇪|\\bHK\\b|\\bTW\\b|\\bSG\\b|\\bJP\\b|\\bKR\\b|\\bUS\\b|\\bGB\\b|\\bUK\\b|\\bMO\\b|CDG|FRA|AMS|MAD|BCN|FCO|MUC|BRU|HKG|TPE|TSA|KHH|SIN|XSP|NRT|HND|KIX|CTS|FUK|JFK|LAX|ORD|ATL|DFW|SFO|MIA|SEA|IAD|LHR|LGW|London|United\\s*Kingdom|\\bDE\\b|\\bFR\\b|\\bNL\\b|Germany|France|Paris|Berlin|Amsterdam|Zurich|Vienna|Madrid|Milan|Stockholm|Dublin|Warsaw|Lisbon|Prague|Copenhagen|Oslo|Helsinki|洛杉矶|纽约|旧金山|西雅图|芝加哥|达拉斯|迈阿密|亚特兰大|波士顿|凤凰城|圣何塞|华盛顿|MFM|MOG|Taipa|Coloane|Cotai))";
   // 机场信息节点统一排除规则（流量/到期/公告等），供各策略组 exclude-filter 复用
   const excludeInfoNodes =
     "(?i)流量|到期|套餐|公告|维护|官网|客服|重置|剩余|失效|暂停|过期|超时|重启";
   const FilterAL =
-    "^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|超时|重启|维护|暂停|失效|公告|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
+    "(?i)^(?!.*(DIRECT|直接连接|群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别行政区|访问|支持|教程|关注|更新|作者|加入|超时|重启|维护|暂停|失效|公告|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author))";
 
   // ==================== 地区定义（数据驱动） ====================
   // regions 顺序 = 代理组展示顺序（策略组/自动测速/负载均衡同此序）
@@ -1158,7 +1178,7 @@ function main(config, profileName) {
     type: "http",
     behavior: "classical",
     format: "yaml",
-    interval: 3600,
+    interval: 86400,
     proxy: "DIRECT",
     url:
       "https://rule.kelee.one/Clash/GitHub.yaml"
